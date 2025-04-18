@@ -34,9 +34,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- Initialization ---
-    initializeTheme(); // Set initial theme
+    initializeTheme();
     wpmValueSpan.textContent = currentWpm;
     updateControlStates();
+    displayWord(null); // Initialize with placeholder
 
 
     // --- Theme Functions ---
@@ -251,41 +252,138 @@ document.addEventListener('DOMContentLoaded', () => {
         }, delay);
     }
 
+    /**
+     * Calculates the display duration for a word based on WPM and word characteristics.
+     * @param {string} word The word to calculate delay for.
+     * @param {number} wpm Current words per minute setting.
+     * @returns {number} Delay in milliseconds.
+     */
     function calculateDelay(word, wpm) {
-        const baseDelay = 60000 / wpm;
-        let dynamicFactor = 1.0; // Start with a multiplier of 1
+        // Base delay: time per word in milliseconds
+        const baseDelayMs = 60000 / wpm;
 
+        // --- Dynamic Delay Logic ---
+        let multiplier = 1.0; // Start with a standard delay multiplier
+
+        // 1. Adjust for word length
         const len = word.length;
-        if (len > 6) dynamicFactor += 0.3;
-        if (len > 10) dynamicFactor += 0.3;
-
-        // Increase delay significantly for punctuation indicating pauses
-        const lastChar = word[len - 1];
-        if (/[.!?,;:]/.test(lastChar)) {
-            dynamicFactor += 0.6; // More significant pause
-             // Slightly longer pause for sentence terminators
-             if (/[.!?]/.test(lastChar)) {
-                 dynamicFactor += 0.3;
-             }
-        } else if (len > 1 && /[,;:]/.test(word[len - 2])) {
-            // Catch punctuation followed by quotes, e.g., "word,"
-             dynamicFactor += 0.6;
+        if (len > 6) {
+            multiplier += 0.3; // Add 30% for moderately long words
+        }
+        if (len > 10) {
+            multiplier += 0.4; // Add another 40% (total 70%) for very long words
+        }
+        if (len < 4) {
+            multiplier -= 0.1; // Slightly speed up very short words (optional)
         }
 
-        // Add a very small base delay regardless of WPM to prevent flicker at high speeds
-        const minDelay = 30; // Minimum milliseconds
-        return Math.max(minDelay, baseDelay * dynamicFactor);
+        // 2. Adjust for punctuation (indicating natural pauses)
+        // Check last character primarily
+        const lastChar = word[len - 1];
+        if (/[.!?,;:]/.test(lastChar)) {
+            multiplier += 0.6; // Add 60% for common end-of-clause punctuation
+            // Add extra pause for sentence terminators
+            if (/[.!?]/.test(lastChar)) {
+                multiplier += 0.4; // Add another 40% (total 100% or 1x base extra)
+            }
+        } else if (len > 1 && /[,;:]/.test(word[len - 2]) && /["')\]}]/.test(lastChar)) {
+            // Catch punctuation followed by closing quote/bracket (e.g., "word," or word;)
+             multiplier += 0.6;
+        }
+
+        // 3. Apply multiplier and ensure minimum delay
+        const calculatedDelay = baseDelayMs * multiplier;
+        const minDelay = 45; // Minimum milliseconds to prevent visual glitches at high WPM
+        const maxDelay = 2000; // Maximum reasonable delay for very long words/pauses
+
+        return Math.max(minDelay, Math.min(calculatedDelay, maxDelay));
     }
 
-
+    /**
+ * Calculates the Optimal Recognition Point (ORP) index for a word.
+ * This is the letter the eye should focus on.
+ * @param {string} word The word to calculate ORP for.
+ * @returns {number} The index of the ORP letter.
+ */
     function calculateOrpIndex(word) {
-        const len = word.replace(/[^a-zA-Z0-9]/g, '').length; // Use length of alphanumeric chars for ORP calc
-        if (len <= 1) return 0;
-        if (len <= 3) return 1;
-        if (len <= 5) return 2;
-        // Slightly more towards the center for longer words
-        return Math.floor(len * 0.38);
+        // Remove punctuation for length calculation, as it affects visual balance less in monospace
+        const effectiveLen = word.replace(/[^a-zA-Z0-9]/g, '').length;
+
+        if (effectiveLen <= 1) return 0;          // First letter for 1 char words
+        if (effectiveLen <= 3) return 1;          // Second letter for 2-3 char words
+        if (effectiveLen <= 5) return 2;          // Third letter for 4-5 char words
+        // General heuristic: approx 35-40% into the word's alphanumeric characters
+        return Math.floor(effectiveLen * 0.38);
     }
+
+    /**
+     * Displays a word in the RSVP panel, centered around the ORP.
+     * Uses non-breaking spaces and monospace font for approximate centering.
+     * @param {string | null} word The word to display, or null to show placeholder.
+     */
+    function displayWord(word) {
+        const nbsp = '\u00A0'; // Non-breaking space character
+
+        if (!word) {
+            // Use padding to roughly center the placeholder text
+            const placeholderText = "Ready...";
+            const placeholderPadding = nbsp.repeat(Math.max(0, 12 - placeholderText.length)); // Adjust padding as needed
+            rsvpDisplay.innerHTML = `<span class="placeholder">${placeholderPadding}${placeholderText}${placeholderPadding}</span>`;
+            return;
+        }
+
+        // --- ORP Calculation ---
+        let orpIndex = calculateOrpIndex(word);
+
+        // Ensure ORP doesn't land on leading/trailing punctuation if possible
+        // Try to find the first *actual* letter/number if ORP is on initial punct
+            while (orpIndex < word.length - 1 && /[^a-zA-Z0-9]/.test(word[orpIndex])) {
+                orpIndex++;
+            }
+            // If it ends up on trailing punct, move left to the last letter/number
+            while (orpIndex > 0 && /[^a-zA-Z0-9]/.test(word[orpIndex])) {
+                orpIndex--;
+            }
+            // Final fallback: if the adjusted index is *still* punctuation (e.g. word IS punctuation), default to 0
+            if (/[^a-zA-Z0-9]/.test(word[orpIndex])) {
+                orpIndex = 0;
+            }
+
+
+        // --- String Splitting ---
+        const beforeOrp = word.substring(0, orpIndex);
+        const orpLetter = word[orpIndex] || ''; // Handle potential index out of bounds
+        const afterOrp = word.substring(orpIndex + 1);
+
+        // --- Padding Calculation for Centering ---
+        // Calculate the character difference to determine padding needed
+        // We use raw lengths here because monospace characters (including punctuation) have similar widths
+        const charDiff = beforeOrp.length - afterOrp.length;
+
+        let paddingBefore = '';
+        let paddingAfter = '';
+        const maxPadding = 15; // Limit max padding to prevent excessive width
+
+        // If 'before' part is longer, pad 'after'
+        if (charDiff > 0) {
+            paddingAfter = nbsp.repeat(Math.min(charDiff, maxPadding));
+        }
+        // If 'after' part is longer, pad 'before'
+        else if (charDiff < 0) {
+            paddingBefore = nbsp.repeat(Math.min(Math.abs(charDiff), maxPadding));
+        }
+
+        // --- Construct HTML ---
+        // Combine padding and word parts
+        // The outer span is centered by flexbox (#rsvp-display)
+        // The inner structure uses padding to shift the ORP visually
+        rsvpDisplay.innerHTML = `
+            <span class="word-container">
+                <span class="orp-before">${paddingBefore}${beforeOrp}</span><span class="orp-letter">${orpLetter}</span><span class="orp-after">${afterOrp}${paddingAfter}</span>
+            </span>
+        `;
+    }
+    
 
 
     function displayWord(word) {
