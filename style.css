@@ -334,64 +334,63 @@ button:not(:disabled):active {
     background-color: var(--bg-color);
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    height: 130px;
-    display: flex; /* Keep flex on wrapper for vertical centering */
-    justify-content: center; /* Center the #rsvp-display horizontally */
-    align-items: center; /* Center the #rsvp-display vertically */
+    height: 130px; /* Adjust height as needed */
+    display: flex; /* Use flex for vertical alignment */
+    justify-content: center; /* Center content horizontally */
+    align-items: center; /* Center content vertically */
     overflow: hidden;
     margin-bottom: 20px;
+    padding: 0 10px; /* Padding on the wrapper */
     transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 #rsvp-display {
-    font-family: var(--font-mono); /* MONOSPACE IS KEY */
-    font-size: 2.8rem;
+    font-family: var(--font-mono), monospace; /* CRITICAL: Specify monospace fallback */
+    font-size: 2.8rem; /* Adjust as needed */
     font-weight: 400;
     color: var(--text-color);
-    width: 100%; /* Take full width */
-    text-align: center; /* LET TEXT-ALIGN DO THE FINAL CENTERING */
-    white-space: pre; /* ESSENTIAL to respect JS padding */
-    /* display: flex; */ /* REMOVE FLEX from here */
-    /* justify-content: center; */ /* REMOVE FLEX */
-    /* align-items: center; */ /* REMOVE FLEX */
+    width: 100%; /* Ensure it takes full width for text-align */
+    text-align: center; /* PRIMARY CENTERING MECHANISM */
+    white-space: nowrap; /* Prevent the word itself from wrapping */
+    line-height: 1.2; /* Adjust for vertical comfort */
     transition: color 0.3s ease;
-    line-height: 1.2; /* Adjust line height if needed */
-    padding: 0 10px; /* Add some padding inside the display */
+    /* Remove flex properties if they were added here */
+    /* display: flex; */
+    /* justify-content: center; */
+    /* align-items: center; */
 }
 
 #rsvp-display .placeholder {
     font-size: 1.5rem;
     color: var(--text-muted-color);
-    font-family: var(--font-sans); /* Placeholder can use sans-serif */
-    white-space: normal; /* Placeholder doesn't need pre */
-    display: inline-block; /* Allow text-align: center to work */
+    font-family: var(--font-sans); /* Placeholder can be sans-serif */
+    white-space: normal;
     transition: color 0.3s ease;
 }
 
 .guide-top, .guide-bottom {
-    /* Keep guide styles as they were */
+    /* Guides positioned relative to wrapper */
     position: absolute; left: 50%; transform: translateX(-50%);
     width: 1px; height: 12px; background-color: var(--guide-line-color);
-    opacity: 0.7; transition: background-color 0.3s ease;
-    z-index: 1; /* Ensure guides are potentially above text if needed */
+    opacity: 0.7; transition: background-color 0.3s ease; z-index: 1;
 }
 .guide-top { top: 15px; }
 .guide-bottom { bottom: 15px; }
 
 .orp-letter {
-    /* Keep ORP letter styles */
     color: var(--orp-color);
-    font-weight: 500;
+    /* font-weight: 500; */ /* Optional: Bolding ORP can slightly shift alignment */
     transition: color 0.3s ease;
 }
 
-.word-container {
-    /* This container is less important now, primarily holds the parts */
-    display: inline; /* Let it flow naturally with text-align */
+/* These containers just hold the parts, no complex styling needed */
+.word-container,
+.orp-before,
+.orp-letter,
+.orp-after {
+    display: inline; /* Flow naturally */
 }
-.orp-before, .orp-letter, .orp-after {
-    display: inline; /* Keep parts flowing */
-}
+
 /* Full Text Output */
 .full-text {
     margin-top: 20px;
@@ -463,7 +462,7 @@ button:not(:disabled):active {
     .header { justify-content: flex-start; padding-left: 0; padding-right: 45px; /* Make space for button */ }
     .theme-toggle-btn { top: 9px; right: 10px; }
     .subtitle { font-size: 1rem; }
-    #rsvp-display { font-size: 1.8rem; padding: 0 5px; }
+    #rsvp-display { font-size: 1.8rem; }
     button { font-size: 0.9rem; padding: 8px 14px;}
     .button-primary { font-size: 0.95rem; padding: 10px 16px;}
     .theme-toggle-btn { font-size: 1.0rem; padding: 4px 7px;}
