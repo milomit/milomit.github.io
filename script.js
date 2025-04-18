@@ -88,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function callGoogleAI(prompt, apiKey) {
         // Using gemini-pro model via REST API
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
+        const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`;
 
         const requestBody = {
             contents: [{
