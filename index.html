@@ -7,36 +7,44 @@
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Roboto+Mono:wght@400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&family=Roboto+Mono:wght@400&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
-        <h1>LLM RSVP Reader</h1>
+        <header class="header">
+            <h1>LLM RSVP Reader</h1>
+            <button id="themeToggle" class="theme-toggle-btn" aria-label="Toggle theme">☀️</button>
+        </header>
         <p class="subtitle">Enter your prompt and Google AI Studio API Key to get started.</p>
 
-        <div class="input-section">
-            <label for="apiKey">Google AI Studio API Key:</label>
-            <input type="password" id="apiKey" placeholder="Enter your API Key" required>
+        <div class="input-section card">
+            <div class="form-group">
+                 <label for="apiKey">Google AI Studio API Key:</label>
+                 <input type="password" id="apiKey" placeholder="Enter your API Key" required>
+            </div>
 
-            <label for="prompt">Your Prompt:</label>
-            <textarea id="prompt" rows="4" placeholder="e.g., Explain quantum physics in simple terms" required></textarea>
+             <div class="form-group">
+                 <label for="prompt">Your Prompt:</label>
+                 <textarea id="prompt" rows="4" placeholder="e.g., Explain quantum physics in simple terms" required></textarea>
+             </div>
 
-            <button id="submitBtn">Generate & Read</button>
+            <button id="submitBtn" class="button-primary">Generate & Read</button>
             <p id="status" class="status-message"></p>
         </div>
 
-        <div class="rsvp-section">
+        <div class="rsvp-section card">
             <h2>RSVP Display</h2>
             <div class="controls">
                 <label for="wpmSlider">Speed (WPM): <span id="wpmValue">300</span></label>
                 <input type="range" id="wpmSlider" min="100" max="1000" value="300" step="10">
-                 <button id="playPauseBtn" disabled>Play</button>
-                 <button id="stopBtn" disabled>Stop</button>
+                 <div class="rsvp-buttons">
+                    <button id="playPauseBtn" disabled>Play</button>
+                    <button id="stopBtn" disabled>Stop</button>
+                 </div>
             </div>
             <div id="rsvp-display-wrapper">
                 <div class="guide-top"></div>
                 <div id="rsvp-display">
-                    <!-- RSVP words appear here -->
                     <span class="placeholder">Ready...</span>
                 </div>
                  <div class="guide-bottom"></div>
