@@ -6,7 +6,7 @@
     --text-muted-color: #718096; /* Lighter grey for subtitles, labels */
     --primary-color: #4a90e2; /* Keeping the blue, maybe slightly softer */
     --primary-color-dark: #357abd;
-    --primary-text-color: #ffffff;
+    --primary-text-color: #ffffff; /* Text on primary color bg */
     --border-color: #e2e8f0;
     --input-bg-color: #ffffff;
     --input-border-color: #cbd5e0;
@@ -15,12 +15,18 @@
     --error-color: #e53e3e;
     --success-color: #38a169;
     --orp-color: #e67e22; /* Orange for ORP stands out */
+    --orp-text-color: #ffffff; /* Text on ORP color bg */
     --slider-track-color: #e2e8f0;
     --slider-thumb-color: var(--primary-color);
     --guide-line-color: var(--orp-color);
     --button-secondary-bg: #e2e8f0;
     --button-secondary-text: #4a5568;
     --button-secondary-hover-bg: #cbd5e0;
+    --highlight-hover-bg: var(--primary-color);
+    --highlight-hover-text: var(--primary-text-color);
+    --highlight-active-bg: var(--orp-color);
+    --highlight-active-text: var(--orp-text-color);
+
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
     --font-mono: 'Roboto Mono', monospace;
 }
@@ -33,24 +39,34 @@ body.dark-mode {
     --text-muted-color: #a0aec0; /* Lighter muted text */
     --primary-color: #63b3ed; /* Lighter blue for dark mode */
     --primary-color-dark: #4299e1;
+    --primary-text-color: #1a202c; /* Darker text on light blue */
     --border-color: #4a5568; /* Darker border */
     --input-bg-color: #2d3748;
     --input-border-color: #4a5568;
     --input-focus-border-color: var(--primary-color);
     --shadow-color: rgba(0, 0, 0, 0.2);
     --orp-color: #f6ad55; /* Lighter orange */
+    --orp-text-color: #2d3748; /* Dark text on light orange */
     --slider-track-color: #4a5568;
     --slider-thumb-color: var(--primary-color);
     --guide-line-color: var(--orp-color);
     --button-secondary-bg: #4a5568;
     --button-secondary-text: #e2e8f0;
     --button-secondary-hover-bg: #718096;
+    --highlight-hover-bg: var(--primary-color);
+    --highlight-hover-text: var(--primary-text-color);
+    --highlight-active-bg: var(--orp-color);
+    --highlight-active-text: var(--orp-text-color);
 }
 
 
 /* --- General Styles --- */
 *, *::before, *::after {
     box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth; /* Smooth scrolling for anchors/scrollIntoView */
 }
 
 body {
@@ -70,23 +86,25 @@ body {
 .container {
     width: 100%;
     max-width: 750px;
+    position: relative; /* Needed for absolute positioning of theme button */
 }
 
 .header {
     display: flex;
-    justify-content: space-between;
+    justify-content: center; /* Center title when button is absolute */
     align-items: center;
     margin-bottom: 5px;
+    position: relative; /* Context for absolute button */
+    padding: 0 50px; /* Make space for button visually */
 }
 
 h1 {
     color: var(--primary-color);
     text-align: center;
-    margin: 0; /* Reset margin */
+    margin: 0;
     font-weight: 700;
-    font-size: 2rem; /* Adjust size */
-    flex-grow: 1; /* Allow title to take space */
-    padding-left: 50px; /* Make space for absolute positioned button */
+    font-size: 2rem;
+    transition: color 0.3s ease;
 }
 
 .subtitle {
@@ -95,6 +113,7 @@ h1 {
     margin-bottom: 30px;
     font-weight: 300;
     font-size: 1.1rem;
+    transition: color 0.3s ease;
 }
 
 /* --- Card Style --- */
@@ -110,15 +129,16 @@ h1 {
 
 /* --- Form Elements --- */
 .input-section .form-group {
-    margin-bottom: 20px; /* Space between form groups */
+    margin-bottom: 20px;
 }
 
 .input-section label {
     display: block;
     margin-bottom: 8px;
-    font-weight: 500; /* Medium weight */
+    font-weight: 500;
     color: var(--text-muted-color);
     font-size: 0.9rem;
+    transition: color 0.3s ease;
 }
 
 .input-section input[type="password"],
@@ -153,9 +173,9 @@ button {
     border-radius: 6px;
     cursor: pointer;
     font-size: 0.95rem;
-    font-weight: 500; /* Medium weight */
-    transition: background-color 0.2s ease, transform 0.1s ease, color 0.3s ease, box-shadow 0.2s ease;
-    margin-right: 8px; /* Default spacing */
+    font-weight: 500;
+    transition: background-color 0.2s ease, transform 0.1s ease, color 0.3s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    margin-right: 8px;
     font-family: var(--font-sans);
 }
 
@@ -164,20 +184,22 @@ button:last-child {
 }
 
 button:disabled {
-    opacity: 0.6;
+    opacity: 0.5; /* More noticeable disabled state */
     cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
 }
 
-button:active:not(:disabled) {
+button:not(:disabled):active {
     transform: scale(0.97);
 }
 
 .button-primary {
     background-color: var(--primary-color);
     color: var(--primary-text-color);
-    display: block; /* Make generate button full width */
+    display: block;
     width: 100%;
-    margin-top: 10px; /* Space above */
+    margin-top: 10px;
     font-size: 1rem;
     padding: 12px 20px;
 }
@@ -187,7 +209,6 @@ button:active:not(:disabled) {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* Standard button style (Play/Pause/Stop) */
 #playPauseBtn, #stopBtn {
     background-color: var(--button-secondary-bg);
     color: var(--button-secondary-text);
@@ -198,31 +219,32 @@ button:active:not(:disabled) {
     background-color: var(--button-secondary-hover-bg);
 }
 
-/* Theme Toggle Button */
+/* --- Theme Toggle Button Enhancement --- */
 .theme-toggle-btn {
-    background: none;
+    background-color: var(--button-secondary-bg);
+    color: var(--button-secondary-text);
     border: 1px solid var(--border-color);
-    color: var(--text-muted-color);
-    font-size: 1.5rem; /* Larger emoji */
-    padding: 4px 8px;
-    line-height: 1; /* Ensure button height fits emoji */
-    position: absolute; /* Position relative to header */
-    right: 15px; /* Align with container padding */
-    top: 25px; /* Align vertically */
-    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
-}
-/* Adjust button position relative to container, not header */
-.container > .header .theme-toggle-btn {
+    font-size: 1.2rem;
+    padding: 6px 10px;
+    line-height: 1;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
     position: absolute;
-    top: 30px; /* Align with body padding */
-    right: 30px; /* Align with body padding */
+    top: 5px; /* Align with top of the header content */
+    right: 0; /* Align to the right edge of the container */
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
-
 
 .theme-toggle-btn:hover {
-    background-color: var(--button-secondary-bg);
+    background-color: var(--button-secondary-hover-bg);
+    border-color: var(--input-focus-border-color);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
 }
 
+.theme-toggle-btn:active {
+    transform: scale(0.96);
+}
 
 /* Status Message */
 .status-message {
@@ -244,6 +266,7 @@ button:active:not(:disabled) {
     color: var(--text-muted-color);
     font-weight: 500;
     font-size: 1.3rem;
+    transition: color 0.3s ease;
 }
 
 .controls {
@@ -251,19 +274,20 @@ button:active:not(:disabled) {
     flex-wrap: wrap;
     align-items: center;
     margin-bottom: 25px;
-    gap: 15px 20px; /* Row and column gap */
+    gap: 15px 20px;
 }
 
 .controls label {
     margin-bottom: 0;
     color: var(--text-muted-color);
     font-size: 0.9rem;
-    white-space: nowrap; /* Prevent wrapping */
+    white-space: nowrap;
+    transition: color 0.3s ease;
 }
 
 #wpmSlider {
     flex-grow: 1;
-    min-width: 150px; /* Ensure minimum width */
+    min-width: 150px;
     cursor: pointer;
     height: 8px;
     background: var(--slider-track-color);
@@ -273,27 +297,24 @@ button:active:not(:disabled) {
     -webkit-appearance: none;
     transition: background-color 0.3s ease;
 }
+#wpmSlider:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
 
 #wpmSlider::-webkit-slider-thumb {
-    appearance: none;
-    -webkit-appearance: none;
-    width: 20px;
-    height: 20px;
-    background: var(--slider-thumb-color);
-    border-radius: 50%;
-    cursor: pointer;
+    appearance: none; -webkit-appearance: none; width: 20px; height: 20px;
+    background: var(--slider-thumb-color); border-radius: 50%; cursor: pointer;
     transition: background-color 0.3s ease;
 }
-
 #wpmSlider::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    background: var(--slider-thumb-color);
-    border-radius: 50%;
-    cursor: pointer;
-    border: none;
+    width: 20px; height: 20px; background: var(--slider-thumb-color);
+    border-radius: 50%; cursor: pointer; border: none;
     transition: background-color 0.3s ease;
 }
+#wpmSlider:disabled::-webkit-slider-thumb { background: gray; cursor: not-allowed; }
+#wpmSlider:disabled::-moz-range-thumb { background: gray; cursor: not-allowed; }
+
 
 #wpmValue {
     font-weight: 500;
@@ -301,18 +322,19 @@ button:active:not(:disabled) {
     display: inline-block;
     text-align: right;
     color: var(--text-color);
+    transition: color 0.3s ease;
 }
 
 .rsvp-buttons {
-    margin-left: auto; /* Push buttons to the right */
+    margin-left: auto; /* Push buttons to the right on larger screens */
 }
 
 #rsvp-display-wrapper {
     position: relative;
-    background-color: var(--bg-color); /* Use main background */
+    background-color: var(--bg-color);
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    height: 130px; /* Slightly taller */
+    height: 130px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -322,13 +344,17 @@ button:active:not(:disabled) {
 }
 
 #rsvp-display {
-    font-family: var(--font-mono);
-    font-size: 2.8rem; /* Slightly larger */
+    font-family: var(--font-mono); /* Crucial for centering */
+    font-size: 2.8rem;
     font-weight: 400;
     color: var(--text-color);
-    text-align: center;
-    width: 95%;
+    text-align: center; /* Center the flex item if needed */
     position: relative;
+    white-space: pre; /* Respect non-breaking spaces */
+    display: flex; /* Center inner span */
+    justify-content: center;
+    align-items: center;
+    width: 100%; /* Take full width to allow flex centering */
     transition: color 0.3s ease;
 }
 
@@ -340,32 +366,26 @@ button:active:not(:disabled) {
 }
 
 .guide-top, .guide-bottom {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 1px;
-    height: 12px;
-    background-color: var(--guide-line-color);
-    opacity: 0.7;
-    transition: background-color 0.3s ease;
+    position: absolute; left: 50%; transform: translateX(-50%);
+    width: 1px; height: 12px; background-color: var(--guide-line-color);
+    opacity: 0.7; transition: background-color 0.3s ease;
 }
-
 .guide-top { top: 15px; }
 .guide-bottom { bottom: 15px; }
 
 .orp-letter {
     color: var(--orp-color);
-    font-weight: 500; /* Make it slightly bolder */
+    font-weight: 500;
     transition: color 0.3s ease;
 }
 
-.word-container { display: inline-block; white-space: nowrap; }
-.orp-before, .orp-letter, .orp-after { display: inline; }
+.word-container { display: inline-block; } /* Container for padding/parts */
+.orp-before, .orp-letter, .orp-after { display: inline; } /* Keep parts flowing */
 
 /* Full Text Output */
 .full-text {
     margin-top: 20px;
-    background-color: var(--bg-color); /* Match RSVP display wrapper bg */
+    background-color: var(--bg-color);
     border: 1px solid var(--border-color);
     border-radius: 6px;
     padding: 15px 20px;
@@ -373,45 +393,53 @@ button:active:not(:disabled) {
 }
 
 .full-text h3 {
-    margin-top: 0;
-    margin-bottom: 10px;
-    color: var(--text-muted-color);
-    font-weight: 500;
-    font-size: 1rem;
+    margin-top: 0; margin-bottom: 10px; color: var(--text-muted-color);
+    font-weight: 500; font-size: 1rem; transition: color 0.3s ease;
 }
 
 .full-text pre {
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    font-family: var(--font-sans);
-    font-size: 0.95rem;
-    color: var(--text-color);
-    max-height: 250px;
-    overflow-y: auto;
-    line-height: 1.7; /* Improve readability */
-    transition: color 0.3s ease;
+    white-space: pre-wrap; word-wrap: break-word; font-family: var(--font-sans);
+    font-size: 0.95rem; color: var(--text-color); max-height: 250px;
+    overflow-y: auto; line-height: 1.7; transition: color 0.3s ease;
+    /* Improve scrollbar appearance */
+    scrollbar-width: thin;
+    scrollbar-color: var(--text-muted-color) var(--border-color);
+}
+.full-text pre::-webkit-scrollbar { width: 8px; }
+.full-text pre::-webkit-scrollbar-track { background: var(--border-color); border-radius: 4px; }
+.full-text pre::-webkit-scrollbar-thumb { background-color: var(--text-muted-color); border-radius: 4px; }
+
+
+/* --- Full Text Interaction Styles --- */
+#full-text-output pre span.word {
+    cursor: pointer;
+    border-radius: 3px;
+    padding: 0 1px;
+    margin: 0 -1px;
+    transition: background-color 0.2s ease, color 0.2s ease, opacity 0.2s ease;
 }
 
-/* Scrollbar styling (Optional, Webkit specific) */
-.full-text pre::-webkit-scrollbar {
-    width: 8px;
+#full-text-output pre span.word:hover {
+    background-color: var(--highlight-hover-bg);
+    color: var(--highlight-hover-text);
+    opacity: 0.75;
 }
-.full-text pre::-webkit-scrollbar-track {
-    background: var(--border-color);
-    border-radius: 4px;
-}
-.full-text pre::-webkit-scrollbar-thumb {
-    background-color: var(--text-muted-color);
-    border-radius: 4px;
+
+#full-text-output pre span.word.current-rsvp-word {
+    background-color: var(--highlight-active-bg);
+    color: var(--highlight-active-text);
+    font-weight: 500;
+    opacity: 1.0;
 }
 
 
 /* --- Responsive Adjustments --- */
 @media (max-width: 700px) {
     body { padding: 20px 10px; }
-    h1 { font-size: 1.8rem; padding-left: 40px; } /* Adjust padding */
-     .container > .header .theme-toggle-btn { top: 20px; right: 20px; font-size: 1.3rem;}
-
+    .container { max-width: 100%; }
+    .header { padding: 0 10px; }
+    h1 { font-size: 1.8rem; }
+    .theme-toggle-btn { top: 8px; right: 10px; font-size: 1.1rem; padding: 5px 8px;}
     .card { padding: 20px; }
     .controls { flex-direction: column; align-items: stretch; }
     .rsvp-buttons { margin-left: 0; width: 100%; display: flex; justify-content: center; margin-top: 10px;}
@@ -421,17 +449,13 @@ button:active:not(:disabled) {
 }
 
 @media (max-width: 480px) {
-    h1 { font-size: 1.6rem; text-align: left; padding-left: 0;}
-    .header { justify-content: flex-start;} /* Align title left */
-    .container > .header .theme-toggle-btn { /* Position relative to container again */
-        position: absolute;
-        top: 20px; /* Adjust as needed */
-        right: 15px; /* Adjust as needed */
-    }
-
-    .subtitle { font-size: 1rem;}
-    #rsvp-display { font-size: 1.9rem; }
+    h1 { font-size: 1.6rem; text-align: left; }
+    .header { justify-content: flex-start; padding-left: 0; padding-right: 45px; /* Make space for button */ }
+    .theme-toggle-btn { top: 9px; right: 10px; }
+    .subtitle { font-size: 1rem; }
+    #rsvp-display { font-size: 1.8rem; }
     button { font-size: 0.9rem; padding: 8px 14px;}
     .button-primary { font-size: 0.95rem; padding: 10px 16px;}
-    .theme-toggle-btn { font-size: 1.2rem;}
+    .theme-toggle-btn { font-size: 1.0rem; padding: 4px 7px;}
+    .full-text pre { max-height: 200px; }
 }

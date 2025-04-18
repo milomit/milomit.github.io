@@ -1,3 +1,4 @@
+// script.js
 document.addEventListener('DOMContentLoaded', () => {
     // --- DOM Elements ---
     const apiKeyInput = document.getElementById('apiKey');
@@ -7,50 +8,48 @@ document.addEventListener('DOMContentLoaded', () => {
     const wpmSlider = document.getElementById('wpmSlider');
     const wpmValueSpan = document.getElementById('wpmValue');
     const rsvpDisplay = document.getElementById('rsvp-display');
-    const rsvpPlaceholder = rsvpDisplay.querySelector('.placeholder');
     const playPauseBtn = document.getElementById('playPauseBtn');
     const stopBtn = document.getElementById('stopBtn');
     const fullTextOutputDiv = document.getElementById('full-text-output');
     const fullTextPre = fullTextOutputDiv.querySelector('pre');
-    const themeToggleBtn = document.getElementById('themeToggle'); // Get toggle button
-
+    const themeToggleBtn = document.getElementById('themeToggle');
 
     // --- State Variables ---
-    let words = [];
-    let currentWordIndex = 0;
+    let words = []; // Stores { text: string, start: int, end: int, index: int }
+    let currentWordIndex = -1; // Index of the word currently focused/playing
     let isPlaying = false;
-    let rsvpIntervalId = null;
+    let rsvpIntervalId = null; // Stores the timeout ID for the RSVP loop
     let currentWpm = parseInt(wpmSlider.value, 10);
     let currentApiKey = '';
-    let fullText = '';
-
+    let fullText = ''; // Stores the raw response text
+    let previousHighlightElement = null; // Stores the DOM element of the previously highlighted word span
 
     // --- Event Listeners ---
     submitBtn.addEventListener('click', handleSubmit);
     wpmSlider.addEventListener('input', handleSliderChange);
     playPauseBtn.addEventListener('click', togglePlayPause);
     stopBtn.addEventListener('click', stopRsvp);
-    themeToggleBtn.addEventListener('click', toggleTheme); // Add listener for theme toggle
-
+    themeToggleBtn.addEventListener('click', toggleTheme);
+    // Event delegation for clicks on words within the full text area
+    fullTextPre.addEventListener('click', handleFullTextClick);
 
     // --- Initialization ---
-    initializeTheme();
+    initializeTheme(); // Set theme based on localStorage or system preference
     wpmValueSpan.textContent = currentWpm;
-    updateControlStates();
-    displayWord(null); // Initialize with placeholder
-
+    updateControlStates(); // Initial button states
+    displayWord(null); // Show initial placeholder in RSVP display
 
     // --- Theme Functions ---
     function setLightTheme() {
         document.body.classList.remove('dark-mode');
-        themeToggleBtn.textContent = '🌙'; // Moon icon for switching to dark
+        themeToggleBtn.textContent = '🌙';
         themeToggleBtn.setAttribute('aria-label', 'Switch to dark mode');
         localStorage.setItem('theme', 'light');
     }
 
     function setDarkTheme() {
         document.body.classList.add('dark-mode');
-        themeToggleBtn.textContent = '☀️'; // Sun icon for switching to light
+        themeToggleBtn.textContent = '☀️';
         themeToggleBtn.setAttribute('aria-label', 'Switch to light mode');
         localStorage.setItem('theme', 'dark');
     }
@@ -58,15 +57,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function initializeTheme() {
         const savedTheme = localStorage.getItem('theme');
         const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-        if (savedTheme === 'dark') {
+        if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
             setDarkTheme();
-        } else if (savedTheme === 'light') {
-            setLightTheme();
-        } else if (prefersDark) {
-            setDarkTheme(); // Default to system preference if no explicit choice saved
         } else {
-            setLightTheme(); // Default to light otherwise
+            setLightTheme();
         }
     }
 
@@ -78,15 +72,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-
     // --- Core RSVP & API Functions ---
 
+    /** Handles changes to the WPM slider */
     function handleSliderChange() {
         currentWpm = parseInt(wpmSlider.value, 10);
         wpmValueSpan.textContent = currentWpm;
-        // Speed adjustment during playback is handled by calculateDelay using currentWpm
+        // If playing, the next delay calculation will use the new WPM
     }
 
+    /** Handles the click on the 'Generate & Read' button */
     async function handleSubmit() {
         currentApiKey = apiKeyInput.value.trim();
         const prompt = promptInput.value.trim();
@@ -96,49 +91,66 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        stopRsvp();
-        showStatus("Generating response...", false, true);
-        submitBtn.disabled = true;
-        playPauseBtn.disabled = true; // Disable during generation
-        stopBtn.disabled = true; // Disable during generation
-        fullTextOutputDiv.style.display = 'none';
+        resetStateBeforeApiCall(); // Clear previous state and UI elements
 
         try {
             const responseText = await callGoogleAI(prompt, currentApiKey);
-            if (responseText) {
+
+            if (responseText !== null && responseText.trim().length > 0) {
                 fullText = responseText;
-                words = preprocessText(responseText);
+                words = preprocessText(fullText); // Process text into word objects
+
                 if (words.length > 0) {
-                    currentWordIndex = 0;
-                    isPlaying = false;
-                    showStatus("Response received. Press Play.", false);
-                    displayWord(words[0]);
-                    fullTextPre.textContent = fullText;
+                    renderFullTextWithSpans(fullText, words); // Display text with clickable spans
                     fullTextOutputDiv.style.display = 'block';
+                    currentWordIndex = 0; // Ready to start from the beginning
+                    isPlaying = false;
+                    showStatus(`Response received (${words.length} words). Press Play.`, false);
+                    displayWord(words[currentWordIndex]); // Show first word & highlight it
                 } else {
-                    showStatus("Received empty or unreadable response.", true);
+                    showStatus("LLM response processed, but no words found.", true);
+                    fullTextPre.textContent = fullText; // Show raw text if parsing failed
+                    fullTextOutputDiv.style.display = 'block';
                 }
+            } else if (responseText === '') { // Explicitly check for empty string response
+                 showStatus("Received an empty response from the LLM.", true);
+                 fullTextPre.textContent = "-- Empty Response --";
+                 fullTextOutputDiv.style.display = 'block';
             }
-            // Error status is set within callGoogleAI
+            // Error status is set within callGoogleAI if responseText is null (API error)
         } catch (error) {
             console.error("Error during generation process:", error);
-            // Status likely set by callGoogleAI, but could add a fallback here
             showStatus(`Processing error: ${error.message}`, true);
         } finally {
-            submitBtn.disabled = false;
-            updateControlStates(); // Update based on whether words were loaded
+            submitBtn.disabled = false; // Re-enable submit button
+            updateControlStates(); // Update play/stop button states
         }
     }
 
-    async function callGoogleAI(prompt, apiKey) {
-        // --- USE THIS URL (v1 and specific model name) ---
-        const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    /** Resets state variables and UI elements before a new API call */
+     function resetStateBeforeApiCall() {
+        stopRsvp(); // Stop any ongoing RSVP, clear interval, reset index, remove highlights
+        showStatus("Generating response...", false, true); // Show loading state
+        submitBtn.disabled = true; // Disable buttons during generation
+        playPauseBtn.disabled = true;
+        stopBtn.disabled = true;
+        wpmSlider.disabled = true; // Disable slider too
+        fullTextOutputDiv.style.display = 'none'; // Hide old text output
+        fullTextPre.innerHTML = ''; // Clear content
+        words = []; // Clear word data
+        fullText = '';
+        currentWordIndex = -1; // Reset index
+        previousHighlightElement = null; // Clear highlight tracker
+        displayWord(null); // Clear RSVP display to placeholder
+    }
 
+    /** Calls the Google AI Gemini API */
+    async function callGoogleAI(prompt, apiKey) {
+        const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
         const requestBody = {
             contents: [{ parts: [{ text: prompt }] }],
-            // Optional: Add safety settings/generation config if needed
-            // generationConfig: { temperature: 0.7, topP: 1.0 },
-            // safetySettings: [ { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" } ]
+             // Optional safety settings can be added here
+             // safetySettings: [ { category: "HARM_CATEGORY_...", threshold: "BLOCK_..." } ]
         };
 
         try {
@@ -149,305 +161,299 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (!response.ok) {
-                 // Attempt to parse error JSON for more details
                 let errorData = null;
                 let errorMsg = `API Error: ${response.status}`;
                 try {
                     errorData = await response.json();
                     if (errorData.error?.message) {
                          errorMsg += ` - ${errorData.error.message}`;
-                         // Specific check for key validity based on common error messages
                          if (response.status === 400 && errorData.error.message.toLowerCase().includes('api key not valid')) {
                               errorMsg = "API Key not valid. Please check your key and ensure it's enabled for the Generative Language API.";
-                         }
-                         // Check for the 404 error specifically
-                         if (response.status === 404 && errorData.error.message.toLowerCase().includes('not found for api version')) {
+                         } else if (response.status === 404) {
                               errorMsg = `Model/API version mismatch (Error 404). Ensure API key is correct and the model 'gemini-1.0-pro' is available via the v1 endpoint. Details: ${errorData.error.message}`;
+                         } else if (response.status === 429) {
+                             errorMsg = "Rate limit exceeded. Please wait and try again. (Error 429)";
                          }
                     }
-                } catch (e) {
-                     errorMsg += ` (${response.statusText || 'Network error'})`;
-                }
-                 console.error("API Response Error Data:", errorData); // Log the detailed error
+                } catch (e) { errorMsg += ` (${response.statusText || 'Network error'})`; }
+                 console.error("API Response Error Data:", errorData);
                  throw new Error(errorMsg);
             }
 
             const data = await response.json();
 
-            // Refined text extraction with more checks
             if (data.candidates && data.candidates.length > 0) {
                 const candidate = data.candidates[0];
+                // Check for finish reason first (e.g., SAFETY)
+                if (candidate.finishReason && candidate.finishReason !== "STOP" && candidate.finishReason !== "MAX_TOKENS") {
+                    throw new Error(`Generation stopped: ${candidate.finishReason}. ${candidate.safetyRatings?.map(r => `${r.category}: ${r.probability}`).join(', ') || ''}`);
+                }
+                // Then extract text
                 if (candidate.content && candidate.content.parts && candidate.content.parts.length > 0) {
                     return candidate.content.parts[0].text;
-                } else if (candidate.finishReason && candidate.finishReason !== "STOP") {
-                     // Handle cases like safety blocks
-                     throw new Error(`Generation stopped: ${candidate.finishReason}. ${candidate.safetyRatings?.map(r => `${r.category}: ${r.probability}`).join(', ') || ''}`);
                 }
             }
-            // Check for prompt feedback block, though candidate check above is often better
-            if (data.promptFeedback?.blockReason) {
-                 throw new Error(`Prompt blocked: ${data.promptFeedback.blockReason}`);
-            }
+             // Handle prompt blocking
+             if (data.promptFeedback?.blockReason) {
+                  throw new Error(`Prompt blocked: ${data.promptFeedback.blockReason}`);
+             }
 
+            // If no text found for other reasons
             console.warn("Unexpected successful API response structure:", data);
-            throw new Error("Could not extract text from LLM response structure.");
+            return ""; // Return empty string if no content but no explicit error/block
 
         } catch (error) {
             console.error("Google AI API call failed:", error);
-            showStatus(`Error: ${error.message}`, true); // Display the detailed error
-            return null;
+            showStatus(`Error: ${error.message}`, true);
+            return null; // Indicate API call failure
         }
     }
 
+    /** Parses text into word objects with positional info */
     function preprocessText(text) {
-        // Split by whitespace, filter empty strings
-        return text.split(/[\s\n]+/).filter(word => word.length > 0);
+        const wordObjects = [];
+        const regex = /\S+/g; // Match sequences of non-whitespace characters
+        let match;
+        let index = 0;
+        while ((match = regex.exec(text)) !== null) {
+            wordObjects.push({
+                text: match[0],
+                start: match.index,
+                end: match.index + match[0].length,
+                index: index++
+            });
+        }
+        return wordObjects;
     }
 
+    /** Renders the full text with words wrapped in clickable spans */
+    function renderFullTextWithSpans(fullText, wordObjects) {
+        let htmlContent = '';
+        let lastIndex = 0;
+        wordObjects.forEach(word => {
+            htmlContent += escapeHtml(fullText.substring(lastIndex, word.start)); // Whitespace
+            htmlContent += `<span class="word" data-word-index="${word.index}">${escapeHtml(word.text)}</span>`; // Word span
+            lastIndex = word.end;
+        });
+        htmlContent += escapeHtml(fullText.substring(lastIndex)); // Trailing text/whitespace
+        fullTextPre.innerHTML = htmlContent;
+    }
+
+    /** Escapes HTML special characters */
+    function escapeHtml(unsafe) {
+        if (!unsafe) return "";
+        return unsafe
+             .replace(/&/g, "&")
+             .replace(/</g, "<")
+             .replace(/>/g, ">")
+             .replace(/"/g, """)
+             .replace(/'/g, "'");
+     }
+
+    /** Handles clicks within the full text area to navigate RSVP */
+    function handleFullTextClick(event) {
+        const target = event.target;
+        if (target && target.matches('span.word[data-word-index]')) {
+            const wordIndex = parseInt(target.getAttribute('data-word-index'), 10);
+            if (!isNaN(wordIndex) && wordIndex >= 0 && wordIndex < words.length) {
+                const wasPlaying = isPlaying; // Check if it was playing before stopping
+                stopRsvp(); // Stop playback, clear interval, remove highlight
+                currentWordIndex = wordIndex; // Set the new index
+                displayWord(words[currentWordIndex]); // Show the clicked word & highlight it
+                if (wasPlaying) {
+                    // Optionally auto-resume or just update status
+                    showStatus(`Navigated to word ${currentWordIndex + 1}. Press Play to resume.`, false);
+                }
+                updateControlStates(); // Ensure button states are correct
+            }
+        }
+    }
+
+    /** Toggles between playing and pausing the RSVP display */
     function togglePlayPause() {
-        if (!words.length) return;
+        if (!words.length || currentWordIndex < 0 || currentWordIndex >= words.length) {
+            // If at end, restart from beginning on Play click
+             if (words.length > 0 && currentWordIndex >= words.length) {
+                 currentWordIndex = 0;
+             } else {
+                 return; // Do nothing if no words or invalid index
+             }
+        }
+
         isPlaying = !isPlaying;
         playPauseBtn.textContent = isPlaying ? 'Pause' : 'Play';
+
         if (isPlaying) {
-            if (currentWordIndex >= words.length) currentWordIndex = 0; // Restart if at end
-            startRsvpLoop();
+            displayWord(words[currentWordIndex]); // Ensure current word is shown/highlighted
+            startRsvpLoop(); // Start the timer loop
         } else {
-            clearTimeout(rsvpIntervalId);
+            clearTimeout(rsvpIntervalId); // Stop the timer
             rsvpIntervalId = null;
+            // Highlight remains on the paused word
         }
         updateControlStates();
     }
 
+    /** Stops RSVP playback, resets to the beginning */
     function stopRsvp() {
         isPlaying = false;
         clearTimeout(rsvpIntervalId);
         rsvpIntervalId = null;
-        currentWordIndex = 0;
-        if (words.length > 0) displayWord(words[0]);
-        else displayWord(null); // Show placeholder if no words
         playPauseBtn.textContent = 'Play';
+        removeHighlight(); // Remove highlight from full text
+
+        if (words.length > 0) {
+            currentWordIndex = 0; // Reset to first word
+            displayWord(words[currentWordIndex]); // Show first word in RSVP (no highlight needed immediately)
+            // Remove highlight *after* displaying the word (which might re-add it)
+            removeHighlight();
+        } else {
+            currentWordIndex = -1;
+            displayWord(null); // Show placeholder
+        }
         updateControlStates();
     }
 
+    /** Main loop for displaying words sequentially */
     function startRsvpLoop() {
-        if (!isPlaying || currentWordIndex >= words.length) {
-            if (currentWordIndex >= words.length && words.length > 0) { // Check words.length > 0 to avoid message on initial load
+        if (!isPlaying || currentWordIndex < 0 || currentWordIndex >= words.length) {
+            // End of playback condition
+            if (isPlaying && currentWordIndex >= words.length && words.length > 0) {
                 isPlaying = false;
                 playPauseBtn.textContent = 'Play';
                 showStatus("RSVP finished.", false);
-                currentWordIndex = 0; // Reset for potential replay
-                displayWord(words[0]); // Show first word again when finished
+                // Decide whether to keep last word highlighted or remove
+                // removeHighlight(); // Uncomment to clear highlight at the end
             }
             updateControlStates();
-            return;
+            return; // Exit loop
         }
 
-        const word = words[currentWordIndex];
-        displayWord(word);
-        const delay = calculateDelay(word, currentWpm);
+        const wordObject = words[currentWordIndex];
+        displayWord(wordObject); // Display word and update highlight
 
+        const delay = calculateDelay(wordObject.text, currentWpm);
+
+        // Set timeout for the *next* word
         rsvpIntervalId = setTimeout(() => {
-            currentWordIndex++;
-            startRsvpLoop();
+            currentWordIndex++; // Move to next word index
+            startRsvpLoop(); // Continue loop
         }, delay);
     }
 
-    /**
-     * Calculates the display duration for a word based on WPM and word characteristics.
-     * @param {string} word The word to calculate delay for.
-     * @param {number} wpm Current words per minute setting.
-     * @returns {number} Delay in milliseconds.
-     */
+    /** Calculates display duration based on WPM and word characteristics */
     function calculateDelay(word, wpm) {
-        // Base delay: time per word in milliseconds
         const baseDelayMs = 60000 / wpm;
-
-        // --- Dynamic Delay Logic ---
-        let multiplier = 1.0; // Start with a standard delay multiplier
-
-        // 1. Adjust for word length
+        let multiplier = 1.0;
         const len = word.length;
-        if (len > 6) {
-            multiplier += 0.3; // Add 30% for moderately long words
-        }
-        if (len > 10) {
-            multiplier += 0.4; // Add another 40% (total 70%) for very long words
-        }
-        if (len < 4) {
-            multiplier -= 0.1; // Slightly speed up very short words (optional)
-        }
 
-        // 2. Adjust for punctuation (indicating natural pauses)
-        // Check last character primarily
+        if (len > 6) multiplier += 0.3;
+        if (len > 10) multiplier += 0.4;
+        if (len < 4) multiplier -= 0.1;
+
         const lastChar = word[len - 1];
         if (/[.!?,;:]/.test(lastChar)) {
-            multiplier += 0.6; // Add 60% for common end-of-clause punctuation
-            // Add extra pause for sentence terminators
-            if (/[.!?]/.test(lastChar)) {
-                multiplier += 0.4; // Add another 40% (total 100% or 1x base extra)
-            }
+            multiplier += 0.6;
+            if (/[.!?]/.test(lastChar)) multiplier += 0.4;
         } else if (len > 1 && /[,;:]/.test(word[len - 2]) && /["')\]}]/.test(lastChar)) {
-            // Catch punctuation followed by closing quote/bracket (e.g., "word," or word;)
-             multiplier += 0.6;
+            multiplier += 0.6;
         }
 
-        // 3. Apply multiplier and ensure minimum delay
         const calculatedDelay = baseDelayMs * multiplier;
-        const minDelay = 45; // Minimum milliseconds to prevent visual glitches at high WPM
-        const maxDelay = 2000; // Maximum reasonable delay for very long words/pauses
-
+        const minDelay = 45;
+        const maxDelay = 2000;
         return Math.max(minDelay, Math.min(calculatedDelay, maxDelay));
     }
 
-        /**
-     * Calculates the Optimal Recognition Point (ORP) index for a word.
-     * This is the letter the eye should focus on.
-     * @param {string} word The word to calculate ORP for.
-     * @returns {number} The index of the ORP letter.
-     */
-        function calculateOrpIndex(word) {
-            // Remove punctuation for length calculation, as it affects visual balance less in monospace
-            const effectiveLen = word.replace(/[^a-zA-Z0-9]/g, '').length;
-    
-            if (effectiveLen <= 1) return 0;          // First letter for 1 char words
-            if (effectiveLen <= 3) return 1;          // Second letter for 2-3 char words
-            if (effectiveLen <= 5) return 2;          // Third letter for 4-5 char words
-            // General heuristic: approx 35-40% into the word's alphanumeric characters
-            return Math.floor(effectiveLen * 0.38);
-        }
-    
-        /**
-         * Displays a word in the RSVP panel, centered around the ORP.
-         * Uses non-breaking spaces and monospace font for approximate centering.
-         * @param {string | null} word The word to display, or null to show placeholder.
-         */
-        function displayWord(word) {
-            const nbsp = '\u00A0'; // Non-breaking space character
-    
-            if (!word) {
-                // Use padding to roughly center the placeholder text
-                const placeholderText = "Ready...";
-                const placeholderPadding = nbsp.repeat(Math.max(0, 12 - placeholderText.length)); // Adjust padding as needed
-                rsvpDisplay.innerHTML = `<span class="placeholder">${placeholderPadding}${placeholderText}${placeholderPadding}</span>`;
-                return;
-            }
-    
-            // --- ORP Calculation ---
-            let orpIndex = calculateOrpIndex(word);
-    
-            // Ensure ORP doesn't land on leading/trailing punctuation if possible
-            // Try to find the first *actual* letter/number if ORP is on initial punct
-             while (orpIndex < word.length - 1 && /[^a-zA-Z0-9]/.test(word[orpIndex])) {
-                 orpIndex++;
-             }
-             // If it ends up on trailing punct, move left to the last letter/number
-             while (orpIndex > 0 && /[^a-zA-Z0-9]/.test(word[orpIndex])) {
-                 orpIndex--;
-             }
-             // Final fallback: if the adjusted index is *still* punctuation (e.g. word IS punctuation), default to 0
-             if (/[^a-zA-Z0-9]/.test(word[orpIndex])) {
-                 orpIndex = 0;
-             }
-    
-    
-            // --- String Splitting ---
-            const beforeOrp = word.substring(0, orpIndex);
-            const orpLetter = word[orpIndex] || ''; // Handle potential index out of bounds
-            const afterOrp = word.substring(orpIndex + 1);
-    
-            // --- Padding Calculation for Centering ---
-            // Calculate the character difference to determine padding needed
-            // We use raw lengths here because monospace characters (including punctuation) have similar widths
-            const charDiff = beforeOrp.length - afterOrp.length;
-    
-            let paddingBefore = '';
-            let paddingAfter = '';
-            const maxPadding = 15; // Limit max padding to prevent excessive width
-    
-            // If 'before' part is longer, pad 'after'
-            if (charDiff > 0) {
-                paddingAfter = nbsp.repeat(Math.min(charDiff, maxPadding));
-            }
-            // If 'after' part is longer, pad 'before'
-            else if (charDiff < 0) {
-                paddingBefore = nbsp.repeat(Math.min(Math.abs(charDiff), maxPadding));
-            }
-    
-            // --- Construct HTML ---
-            // Combine padding and word parts
-            // The outer span is centered by flexbox (#rsvp-display)
-            // The inner structure uses padding to shift the ORP visually
-            rsvpDisplay.innerHTML = `
-                <span class="word-container">
-                    <span class="orp-before">${paddingBefore}${beforeOrp}</span><span class="orp-letter">${orpLetter}</span><span class="orp-after">${afterOrp}${paddingAfter}</span>
-                </span>
-            `;
-        }
-    
-
-
-    function displayWord(word) {
-        if (!word) {
-            rsvpDisplay.innerHTML = `<span class="placeholder">Ready...</span>`;
-            return;
-        }
-
-        // Simple ORP calculation based on character index
-        let orpIndex = calculateOrpIndex(word);
-
-        // Adjust ORP index if it falls on punctuation, try moving left
-        const nonWordRegex = /[^a-zA-Z0-9]/;
-        while (orpIndex > 0 && nonWordRegex.test(word[orpIndex])) {
-             orpIndex--;
-        }
-         // If the first char is punctuation, use the second if available
-         if (orpIndex === 0 && nonWordRegex.test(word[orpIndex]) && word.length > 1) {
-             orpIndex = 1;
-         }
-         // Final fallback if still on punctuation (e.g., short punctuation word like ';')
-         if (nonWordRegex.test(word[orpIndex])) {
-            orpIndex = 0;
-         }
-
-
-        const beforeOrp = word.substring(0, orpIndex);
-        const orpLetter = word[orpIndex];
-        const afterOrp = word.substring(orpIndex + 1);
-
-        // Use non-breaking spaces for padding to help centering, but CSS handles main alignment
-        const PADDING_SPACES = 15; // Adjust as needed for visual balance
-        const nbsp = '\u00A0'; // Non-breaking space HTML entity
-
-        let padBefore = nbsp.repeat(Math.max(0, PADDING_SPACES - beforeOrp.length));
-        let padAfter = nbsp.repeat(Math.max(0, PADDING_SPACES - afterOrp.length));
-
-
-        rsvpDisplay.innerHTML = `
-            <span class="word-container">
-                <span class="orp-before">${padBefore}${beforeOrp}</span><span class="orp-letter">${orpLetter}</span><span class="orp-after">${afterOrp}${padAfter}</span>
-            </span>
-        `;
+    /** Calculates the Optimal Recognition Point (ORP) index */
+    function calculateOrpIndex(word) {
+        const effectiveLen = word.replace(/[^a-zA-Z0-9]/g, '').length;
+        if (effectiveLen <= 1) return 0;
+        if (effectiveLen <= 3) return 1;
+        if (effectiveLen <= 5) return 2;
+        return Math.floor(effectiveLen * 0.38);
     }
 
+    /** Displays word in RSVP panel, centers ORP, and highlights in full text */
+    function displayWord(wordObject) {
+        const nbsp = '\u00A0';
+        removeHighlight(); // Clear previous highlight
+
+        if (wordObject && wordObject.text) {
+            // Highlight in full text
+            const wordElement = fullTextPre.querySelector(`span[data-word-index="${wordObject.index}"]`);
+            if (wordElement) {
+                wordElement.classList.add('current-rsvp-word');
+                if (isPlaying) { // Only scroll when actively playing
+                    wordElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                }
+                previousHighlightElement = wordElement;
+            }
+
+            // Display in RSVP panel
+            const word = wordObject.text;
+            let orpIndex = calculateOrpIndex(word);
+
+            // Adjust ORP off punctuation if possible
+            while (orpIndex < word.length - 1 && /[^a-zA-Z0-9]/.test(word[orpIndex])) { orpIndex++; }
+            while (orpIndex > 0 && /[^a-zA-Z0-9]/.test(word[orpIndex])) { orpIndex--; }
+            if (/[^a-zA-Z0-9]/.test(word[orpIndex])) { orpIndex = 0; }
+
+            const beforeOrp = word.substring(0, orpIndex);
+            const orpLetter = word[orpIndex] || '';
+            const afterOrp = word.substring(orpIndex + 1);
+
+            // Calculate padding for centering
+            const charDiff = beforeOrp.length - afterOrp.length;
+            let paddingBefore = '', paddingAfter = '';
+            const maxPadding = 15;
+            if (charDiff > 0) paddingAfter = nbsp.repeat(Math.min(charDiff, maxPadding));
+            else if (charDiff < 0) paddingBefore = nbsp.repeat(Math.min(Math.abs(charDiff), maxPadding));
+
+            // Set RSVP display content (ensure parts are escaped)
+             rsvpDisplay.innerHTML = `
+                <span class="word-container">
+                    <span class="orp-before">${paddingBefore}${escapeHtml(beforeOrp)}</span><span class="orp-letter">${escapeHtml(orpLetter)}</span><span class="orp-after">${escapeHtml(afterOrp)}${paddingAfter}</span>
+                </span>`;
+
+        } else {
+            // Show placeholder if no word object
+            const placeholderText = "Ready...";
+            const placeholderPadding = nbsp.repeat(Math.max(0, 12 - placeholderText.length));
+            rsvpDisplay.innerHTML = `<span class="placeholder">${placeholderPadding}${placeholderText}${placeholderPadding}</span>`;
+        }
+    }
+
+    /** Removes the highlight class from the previously highlighted word */
+    function removeHighlight() {
+        if (previousHighlightElement) {
+            previousHighlightElement.classList.remove('current-rsvp-word');
+            previousHighlightElement = null;
+        }
+    }
+
+    /** Displays status messages to the user */
     function showStatus(message, isError = false, isLoading = false) {
         statusMsg.textContent = message;
         statusMsg.className = 'status-message'; // Reset classes
         if (isError) {
             statusMsg.classList.add('error');
-        } else if (!isLoading && message) { // Only add success if not loading and there's a message
+        } else if (!isLoading && message) {
             statusMsg.classList.add('success');
         }
     }
 
+    /** Updates the enabled/disabled state of control buttons */
     function updateControlStates() {
         const hasWords = words.length > 0;
-        // Enable play/stop only if words are loaded
-        playPauseBtn.disabled = !hasWords;
-        // Disable stop if not playing OR if already at the beginning
-        stopBtn.disabled = !hasWords || (!isPlaying && currentWordIndex === 0);
+        const isReady = hasWords && currentWordIndex >= 0; // Ready if words loaded and index is valid
+        const canPlay = isReady && currentWordIndex < words.length;
 
-         // Re-enable submit button unless actively playing
-         submitBtn.disabled = isPlaying;
+        playPauseBtn.disabled = !isReady; // Can toggle play/pause if ready
+        stopBtn.disabled = !isReady || (!isPlaying && currentWordIndex === 0); // Can stop if ready AND (playing OR not at start)
+        wpmSlider.disabled = !hasWords; // Enable slider if words are loaded
+
+        // Submit button state is managed in handleSubmit/resetState
     }
 
-});
+}); // End DOMContentLoaded
