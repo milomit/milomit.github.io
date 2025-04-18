@@ -422,7 +422,41 @@ button:active:not(:disabled) {
     background-color: var(--text-muted-color);
     border-radius: 4px;
 }
+#full-text-output pre span.word {
+    cursor: pointer;
+    border-radius: 3px; /* Slight rounding for hover/highlight */
+    padding: 0 1px; /* Tiny padding for visual separation on highlight */
+    margin: 0 -1px; /* Counteract padding influence on layout */
+    transition: background-color 0.2s ease, color 0.2s ease; /* Smooth transitions */
+}
 
+/* Hover effect for clickable words */
+#full-text-output pre span.word:hover {
+    background-color: var(--primary-color); /* Use primary color for hover */
+    color: var(--primary-text-color); /* Text color that contrasts with primary */
+    opacity: 0.7; /* Make hover slightly subtle */
+}
+
+/* Style for the currently active RSVP word in the full text */
+#full-text-output pre span.word.current-rsvp-word {
+    background-color: var(--orp-color); /* Use ORP color for active word */
+    color: var(--primary-text-color); /* Ensure contrast, usually white/light */
+    font-weight: 500; /* Slightly bolder */
+    opacity: 1.0; /* Full opacity for the active word */
+}
+
+/* Ensure dark mode compatibility for highlighting */
+body.dark-mode #full-text-output pre span.word:hover {
+     /* Primary color might need adjustment in dark mode if not already done */
+     /* color: var(--card-bg-color); */ /* Or ensure --primary-text-color works well */
+     opacity: 0.7;
+}
+
+body.dark-mode #full-text-output pre span.word.current-rsvp-word {
+    background-color: var(--orp-color); /* ORP color should have been adjusted for dark mode */
+    /* color: var(--card-bg-color); */ /* Or use a specific dark-mode highlight text color */
+    font-weight: 500;
+}
 
 /* --- Responsive Adjustments --- */
 @media (max-width: 700px) {
