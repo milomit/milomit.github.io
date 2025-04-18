@@ -7,22 +7,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const wpmSlider = document.getElementById('wpmSlider');
     const wpmValueSpan = document.getElementById('wpmValue');
     const rsvpDisplay = document.getElementById('rsvp-display');
-    // rsvpPlaceholder is managed dynamically now
+    const rsvpPlaceholder = rsvpDisplay.querySelector('.placeholder');
     const playPauseBtn = document.getElementById('playPauseBtn');
     const stopBtn = document.getElementById('stopBtn');
     const fullTextOutputDiv = document.getElementById('full-text-output');
     const fullTextPre = fullTextOutputDiv.querySelector('pre');
-    const themeToggleBtn = document.getElementById('themeToggle');
+    const themeToggleBtn = document.getElementById('themeToggle'); // Get toggle button
+
 
     // --- State Variables ---
-    let words = []; // Now stores objects: { text: string, start: int, end: int, index: int }
-    let currentWordIndex = -1; // Start at -1 to indicate nothing is selected initially
+    let words = [];
+    let currentWordIndex = 0;
     let isPlaying = false;
     let rsvpIntervalId = null;
     let currentWpm = parseInt(wpmSlider.value, 10);
     let currentApiKey = '';
     let fullText = '';
-    let previousHighlightElement = null; // To efficiently remove previous highlight
 
 
     // --- Event Listeners ---
@@ -30,16 +30,14 @@ document.addEventListener('DOMContentLoaded', () => {
     wpmSlider.addEventListener('input', handleSliderChange);
     playPauseBtn.addEventListener('click', togglePlayPause);
     stopBtn.addEventListener('click', stopRsvp);
-    themeToggleBtn.addEventListener('click', toggleTheme);
-    // Add event listener to the full text container for word clicks (Event Delegation)
-    fullTextPre.addEventListener('click', handleFullTextClick);
+    themeToggleBtn.addEventListener('click', toggleTheme); // Add listener for theme toggle
 
 
     // --- Initialization ---
     initializeTheme();
     wpmValueSpan.textContent = currentWpm;
     updateControlStates();
-    displayWord(null); // Show initial placeholder
+    displayWord(null); // Initialize with placeholder
 
 
     // --- Theme Functions ---
@@ -98,54 +96,38 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        resetStateBeforeApiCall(); // Reset state variables and UI
+        stopRsvp();
+        showStatus("Generating response...", false, true);
+        submitBtn.disabled = true;
+        playPauseBtn.disabled = true; // Disable during generation
+        stopBtn.disabled = true; // Disable during generation
+        fullTextOutputDiv.style.display = 'none';
 
         try {
             const responseText = await callGoogleAI(prompt, currentApiKey);
-            if (responseText && responseText.trim().length > 0) {
+            if (responseText) {
                 fullText = responseText;
-                words = preprocessText(fullText); // Create word objects with indices
-
+                words = preprocessText(responseText);
                 if (words.length > 0) {
-                    renderFullTextWithSpans(fullText, words); // Render text with clickable spans
-                    fullTextOutputDiv.style.display = 'block';
-                    currentWordIndex = 0; // Set index to the start
+                    currentWordIndex = 0;
                     isPlaying = false;
-                    showStatus(`Response received (${words.length} words). Press Play.`, false);
-                    displayWord(words[currentWordIndex]); // Show the first word & highlight
-                } else {
-                    showStatus("LLM response processed, but no words found.", true);
-                    fullTextPre.textContent = fullText; // Show raw text if no words parsed
+                    showStatus("Response received. Press Play.", false);
+                    displayWord(words[0]);
+                    fullTextPre.textContent = fullText;
                     fullTextOutputDiv.style.display = 'block';
+                } else {
+                    showStatus("Received empty or unreadable response.", true);
                 }
-            } else if (responseText !== null) { // Handle empty response explicitly
-                 showStatus("Received an empty response from the LLM.", true);
-                 fullTextPre.textContent = "-- Empty Response --";
-                 fullTextOutputDiv.style.display = 'block';
             }
-            // Error status is set within callGoogleAI if responseText is null
+            // Error status is set within callGoogleAI
         } catch (error) {
             console.error("Error during generation process:", error);
+            // Status likely set by callGoogleAI, but could add a fallback here
             showStatus(`Processing error: ${error.message}`, true);
         } finally {
-            submitBtn.disabled = false; // Re-enable button
+            submitBtn.disabled = false;
             updateControlStates(); // Update based on whether words were loaded
         }
-    }
-
-     function resetStateBeforeApiCall() {
-        stopRsvp(); // Stop any ongoing RSVP and clear timeouts/highlights
-        showStatus("Generating response...", false, true);
-        submitBtn.disabled = true;
-        playPauseBtn.disabled = true;
-        stopBtn.disabled = true;
-        fullTextOutputDiv.style.display = 'none';
-        fullTextPre.innerHTML = ''; // Clear previous text content
-        words = [];
-        fullText = '';
-        currentWordIndex = -1;
-        previousHighlightElement = null;
-        displayWord(null); // Clear RSVP display
     }
 
     async function callGoogleAI(prompt, apiKey) {
@@ -217,162 +199,56 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    /**
-     * Processes the full text, identifies words, and returns an array of objects,
-     * each containing the word's text, start/end indices, and its index in the array.
-     * @param {string} text The full text response.
-     * @returns {Array<object>} Array of { text, start, end, index }
-     */
     function preprocessText(text) {
-        const wordObjects = [];
-        // Regex to find sequences of non-whitespace characters (words)
-        // It captures the word and its index
-        const regex = /\S+/g;
-        let match;
-        let index = 0;
-
-        while ((match = regex.exec(text)) !== null) {
-            wordObjects.push({
-                text: match[0],
-                start: match.index,
-                end: match.index + match[0].length,
-                index: index++ // Assign the sequential index
-            });
-        }
-        return wordObjects;
+        // Split by whitespace, filter empty strings
+        return text.split(/[\s\n]+/).filter(word => word.length > 0);
     }
-
-    /**
-     * Renders the full text into the <pre> tag, wrapping each word
-     * (identified in the wordObjects array) in a clickable span.
-     * @param {string} fullText The original text.
-     * @param {Array<object>} wordObjects Processed word data from preprocessText.
-     */
-    function renderFullTextWithSpans(fullText, wordObjects) {
-        let htmlContent = '';
-        let lastIndex = 0;
-
-        wordObjects.forEach(word => {
-            // Add the text between the last word and this word (whitespace)
-            htmlContent += escapeHtml(fullText.substring(lastIndex, word.start));
-            // Add the word wrapped in a span
-            htmlContent += `<span class="word" data-word-index="${word.index}">${escapeHtml(word.text)}</span>`;
-            lastIndex = word.end;
-        });
-
-        // Add any remaining text after the last word
-        htmlContent += escapeHtml(fullText.substring(lastIndex));
-
-        fullTextPre.innerHTML = htmlContent;
-    }
-
-     // Helper function to escape HTML entities for safe rendering
-    function escapeHtml(unsafe) {
-        return unsafe
-             .replace(/&/g, "&")
-             .replace(/</g, "<")
-             .replace(/>/g, ">")
-             .replace(/"/g, """)
-             .replace(/'/g, "'");
-    }
-
-    /**
-     * Handles clicks within the full text display area.
-     * If a word span is clicked, jumps the RSVP to that word.
-     * @param {Event} event The click event.
-     */
-    function handleFullTextClick(event) {
-        const target = event.target;
-        // Check if the clicked element is a word span with the data attribute
-        if (target && target.matches('span.word[data-word-index]')) {
-            const wordIndex = parseInt(target.getAttribute('data-word-index'), 10);
-
-            if (!isNaN(wordIndex) && wordIndex >= 0 && wordIndex < words.length) {
-                // Stop playback if it was running
-                if (isPlaying) {
-                    stopRsvp(); // Stops playback, resets index, clears highlight
-                        currentWordIndex = wordIndex; // Set index AFTER stopping
-                        displayWord(words[currentWordIndex]); // Display the clicked word & highlight
-                        showStatus(`Navigated to word ${currentWordIndex + 1}. Press Play to resume.`, false);
-                        updateControlStates(); // Update buttons
-                } else {
-                    // If already paused/stopped, just jump
-                    currentWordIndex = wordIndex;
-                    displayWord(words[currentWordIndex]); // Display word and update highlight
-                    updateControlStates(); // Ensure buttons are correct (Play should be enabled)
-                }
-            }
-        }
-    }
-
 
     function togglePlayPause() {
-        if (!words.length || currentWordIndex < 0) return; // Don't play if no words or not ready
-
+        if (!words.length) return;
         isPlaying = !isPlaying;
         playPauseBtn.textContent = isPlaying ? 'Pause' : 'Play';
-
         if (isPlaying) {
-            // If starting from beginning or resuming after stop/click
-            if (currentWordIndex < 0 || currentWordIndex >= words.length) {
-                 currentWordIndex = 0;
-            }
-             // Ensure the word at the current index is displayed before starting loop
-             displayWord(words[currentWordIndex]);
-             startRsvpLoop();
+            if (currentWordIndex >= words.length) currentWordIndex = 0; // Restart if at end
+            startRsvpLoop();
         } else {
-            // Pause: clear the timer but keep index and highlight
             clearTimeout(rsvpIntervalId);
             rsvpIntervalId = null;
         }
         updateControlStates();
     }
 
-
     function stopRsvp() {
         isPlaying = false;
         clearTimeout(rsvpIntervalId);
         rsvpIntervalId = null;
+        currentWordIndex = 0;
+        if (words.length > 0) displayWord(words[0]);
+        else displayWord(null); // Show placeholder if no words
         playPauseBtn.textContent = 'Play';
-
-        // Remove highlight from the full text view
-        removeHighlight();
-
-        if (words.length > 0) {
-             currentWordIndex = 0; // Reset index to the beginning
-             displayWord(words[currentWordIndex]); // Show the first word (without highlight initially)
-        } else {
-             currentWordIndex = -1; // No words, reset index
-             displayWord(null); // Clear display
-        }
-         updateControlStates();
+        updateControlStates();
     }
 
-
     function startRsvpLoop() {
-        if (!isPlaying || currentWordIndex < 0 || currentWordIndex >= words.length) {
-            // Handle end of playback
-            if (currentWordIndex >= words.length && words.length > 0) {
+        if (!isPlaying || currentWordIndex >= words.length) {
+            if (currentWordIndex >= words.length && words.length > 0) { // Check words.length > 0 to avoid message on initial load
                 isPlaying = false;
                 playPauseBtn.textContent = 'Play';
                 showStatus("RSVP finished.", false);
-                // Optional: Keep the last word highlighted or remove highlight
-                // removeHighlight(); // Uncomment to remove highlight at the end
-                // currentWordIndex = 0; // Reset for potential replay from start
+                currentWordIndex = 0; // Reset for potential replay
+                displayWord(words[0]); // Show first word again when finished
             }
             updateControlStates();
             return;
         }
 
-        // Display word and update highlight *before* setting timeout for next word
-        const wordObject = words[currentWordIndex];
-        displayWord(wordObject); // This now also handles highlighting
-
-        const delay = calculateDelay(wordObject.text, currentWpm);
+        const word = words[currentWordIndex];
+        displayWord(word);
+        const delay = calculateDelay(word, currentWpm);
 
         rsvpIntervalId = setTimeout(() => {
             currentWordIndex++;
-            startRsvpLoop(); // Schedule the next word
+            startRsvpLoop();
         }, delay);
     }
 
@@ -423,88 +299,135 @@ document.addEventListener('DOMContentLoaded', () => {
         return Math.max(minDelay, Math.min(calculatedDelay, maxDelay));
     }
 
-    /**
- * Calculates the Optimal Recognition Point (ORP) index for a word.
- * This is the letter the eye should focus on.
- * @param {string} word The word to calculate ORP for.
- * @returns {number} The index of the ORP letter.
- */
-    function calculateOrpIndex(word) {
-        // Remove punctuation for length calculation, as it affects visual balance less in monospace
-        const effectiveLen = word.replace(/[^a-zA-Z0-9]/g, '').length;
-
-        if (effectiveLen <= 1) return 0;          // First letter for 1 char words
-        if (effectiveLen <= 3) return 1;          // Second letter for 2-3 char words
-        if (effectiveLen <= 5) return 2;          // Third letter for 4-5 char words
-        // General heuristic: approx 35-40% into the word's alphanumeric characters
-        return Math.floor(effectiveLen * 0.38);
-    }
-
-/**
-     * Displays a word in the RSVP panel, centers it, AND highlights
-     * the corresponding word in the full text view.
-     * @param {object | null} wordObject The word object {text, index,...} or null.
+        /**
+     * Calculates the Optimal Recognition Point (ORP) index for a word.
+     * This is the letter the eye should focus on.
+     * @param {string} word The word to calculate ORP for.
+     * @returns {number} The index of the ORP letter.
      */
-    function displayWord(wordObject) {
-        const nbsp = '\u00A0';
-
-        // --- Update Full Text Highlight ---
-        removeHighlight(); // Remove previous highlight first
-
-        if (wordObject) {
-            const wordElement = fullTextPre.querySelector(`span[data-word-index="${wordObject.index}"]`);
-            if (wordElement) {
-                wordElement.classList.add('current-rsvp-word');
-                // Scroll the highlighted word into view if needed
-                wordElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-                previousHighlightElement = wordElement; // Store for efficient removal later
+        function calculateOrpIndex(word) {
+            // Remove punctuation for length calculation, as it affects visual balance less in monospace
+            const effectiveLen = word.replace(/[^a-zA-Z0-9]/g, '').length;
+    
+            if (effectiveLen <= 1) return 0;          // First letter for 1 char words
+            if (effectiveLen <= 3) return 1;          // Second letter for 2-3 char words
+            if (effectiveLen <= 5) return 2;          // Third letter for 4-5 char words
+            // General heuristic: approx 35-40% into the word's alphanumeric characters
+            return Math.floor(effectiveLen * 0.38);
+        }
+    
+        /**
+         * Displays a word in the RSVP panel, centered around the ORP.
+         * Uses non-breaking spaces and monospace font for approximate centering.
+         * @param {string | null} word The word to display, or null to show placeholder.
+         */
+        function displayWord(word) {
+            const nbsp = '\u00A0'; // Non-breaking space character
+    
+            if (!word) {
+                // Use padding to roughly center the placeholder text
+                const placeholderText = "Ready...";
+                const placeholderPadding = nbsp.repeat(Math.max(0, 12 - placeholderText.length)); // Adjust padding as needed
+                rsvpDisplay.innerHTML = `<span class="placeholder">${placeholderPadding}${placeholderText}${placeholderPadding}</span>`;
+                return;
             }
-
-            // --- Display Word in RSVP Panel ---
-            const word = wordObject.text;
+    
+            // --- ORP Calculation ---
             let orpIndex = calculateOrpIndex(word);
-
-            // Adjust ORP (same logic as before)
-            while (orpIndex < word.length - 1 && /[^a-zA-Z0-9]/.test(word[orpIndex])) { orpIndex++; }
-            while (orpIndex > 0 && /[^a-zA-Z0-9]/.test(word[orpIndex])) { orpIndex--; }
-            if (/[^a-zA-Z0-9]/.test(word[orpIndex])) { orpIndex = 0; }
-
+    
+            // Ensure ORP doesn't land on leading/trailing punctuation if possible
+            // Try to find the first *actual* letter/number if ORP is on initial punct
+             while (orpIndex < word.length - 1 && /[^a-zA-Z0-9]/.test(word[orpIndex])) {
+                 orpIndex++;
+             }
+             // If it ends up on trailing punct, move left to the last letter/number
+             while (orpIndex > 0 && /[^a-zA-Z0-9]/.test(word[orpIndex])) {
+                 orpIndex--;
+             }
+             // Final fallback: if the adjusted index is *still* punctuation (e.g. word IS punctuation), default to 0
+             if (/[^a-zA-Z0-9]/.test(word[orpIndex])) {
+                 orpIndex = 0;
+             }
+    
+    
+            // --- String Splitting ---
             const beforeOrp = word.substring(0, orpIndex);
-            const orpLetter = word[orpIndex] || '';
+            const orpLetter = word[orpIndex] || ''; // Handle potential index out of bounds
             const afterOrp = word.substring(orpIndex + 1);
-
+    
+            // --- Padding Calculation for Centering ---
+            // Calculate the character difference to determine padding needed
+            // We use raw lengths here because monospace characters (including punctuation) have similar widths
             const charDiff = beforeOrp.length - afterOrp.length;
+    
             let paddingBefore = '';
             let paddingAfter = '';
-            const maxPadding = 15;
-
-            if (charDiff > 0) paddingAfter = nbsp.repeat(Math.min(charDiff, maxPadding));
-            else if (charDiff < 0) paddingBefore = nbsp.repeat(Math.min(Math.abs(charDiff), maxPadding));
-
+            const maxPadding = 15; // Limit max padding to prevent excessive width
+    
+            // If 'before' part is longer, pad 'after'
+            if (charDiff > 0) {
+                paddingAfter = nbsp.repeat(Math.min(charDiff, maxPadding));
+            }
+            // If 'after' part is longer, pad 'before'
+            else if (charDiff < 0) {
+                paddingBefore = nbsp.repeat(Math.min(Math.abs(charDiff), maxPadding));
+            }
+    
+            // --- Construct HTML ---
+            // Combine padding and word parts
+            // The outer span is centered by flexbox (#rsvp-display)
+            // The inner structure uses padding to shift the ORP visually
             rsvpDisplay.innerHTML = `
                 <span class="word-container">
-                    <span class="orp-before">${paddingBefore}${escapeHtml(beforeOrp)}</span><span class="orp-letter">${escapeHtml(orpLetter)}</span><span class="orp-after">${escapeHtml(afterOrp)}${paddingAfter}</span>
-                </span>`;
-
-        } else {
-            // Display Placeholder if wordObject is null
-            const placeholderText = "Ready...";
-            const placeholderPadding = nbsp.repeat(Math.max(0, 12 - placeholderText.length));
-            rsvpDisplay.innerHTML = `<span class="placeholder">${placeholderPadding}${placeholderText}${placeholderPadding}</span>`;
+                    <span class="orp-before">${paddingBefore}${beforeOrp}</span><span class="orp-letter">${orpLetter}</span><span class="orp-after">${afterOrp}${paddingAfter}</span>
+                </span>
+            `;
         }
-    }
+    
 
-     /** Removes the highlight class from the previously highlighted word span. */
-    function removeHighlight() {
-        if (previousHighlightElement) {
-            previousHighlightElement.classList.remove('current-rsvp-word');
-            previousHighlightElement = null;
+
+    function displayWord(word) {
+        if (!word) {
+            rsvpDisplay.innerHTML = `<span class="placeholder">Ready...</span>`;
+            return;
         }
-        // Fallback in case state gets messed up (slower)
-        // const highlighted = fullTextPre.querySelector('span.current-rsvp-word');
-        // if (highlighted) highlighted.classList.remove('current-rsvp-word');
-    }
 
+        // Simple ORP calculation based on character index
+        let orpIndex = calculateOrpIndex(word);
+
+        // Adjust ORP index if it falls on punctuation, try moving left
+        const nonWordRegex = /[^a-zA-Z0-9]/;
+        while (orpIndex > 0 && nonWordRegex.test(word[orpIndex])) {
+             orpIndex--;
+        }
+         // If the first char is punctuation, use the second if available
+         if (orpIndex === 0 && nonWordRegex.test(word[orpIndex]) && word.length > 1) {
+             orpIndex = 1;
+         }
+         // Final fallback if still on punctuation (e.g., short punctuation word like ';')
+         if (nonWordRegex.test(word[orpIndex])) {
+            orpIndex = 0;
+         }
+
+
+        const beforeOrp = word.substring(0, orpIndex);
+        const orpLetter = word[orpIndex];
+        const afterOrp = word.substring(orpIndex + 1);
+
+        // Use non-breaking spaces for padding to help centering, but CSS handles main alignment
+        const PADDING_SPACES = 15; // Adjust as needed for visual balance
+        const nbsp = '\u00A0'; // Non-breaking space HTML entity
+
+        let padBefore = nbsp.repeat(Math.max(0, PADDING_SPACES - beforeOrp.length));
+        let padAfter = nbsp.repeat(Math.max(0, PADDING_SPACES - afterOrp.length));
+
+
+        rsvpDisplay.innerHTML = `
+            <span class="word-container">
+                <span class="orp-before">${padBefore}${beforeOrp}</span><span class="orp-letter">${orpLetter}</span><span class="orp-after">${afterOrp}${padAfter}</span>
+            </span>
+        `;
+    }
 
     function showStatus(message, isError = false, isLoading = false) {
         statusMsg.textContent = message;
@@ -516,18 +439,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
- /** Updates the enabled/disabled state of control buttons. */
     function updateControlStates() {
-    const hasWords = words.length > 0;
-    const canPlay = hasWords && currentWordIndex < words.length; // Can play if words exist and not past the end
+        const hasWords = words.length > 0;
+        // Enable play/stop only if words are loaded
+        playPauseBtn.disabled = !hasWords;
+        // Disable stop if not playing OR if already at the beginning
+        stopBtn.disabled = !hasWords || (!isPlaying && currentWordIndex === 0);
 
-    playPauseBtn.disabled = !canPlay;
-    // Stop button enabled if playing OR if paused not at the very beginning
-    stopBtn.disabled = !hasWords || (!isPlaying && currentWordIndex <= 0);
-
-    // Submit button should be enabled unless actively generating (handled in handleSubmit)
-    // Or maybe disable if currently playing? Your choice. Let's keep it enabled.
-     submitBtn.disabled = false; // Or: submitBtn.disabled = isPlaying;
-}
+         // Re-enable submit button unless actively playing
+         submitBtn.disabled = isPlaying;
+    }
 
 });

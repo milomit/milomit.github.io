@@ -200,38 +200,27 @@ button:active:not(:disabled) {
 
 /* Theme Toggle Button */
 .theme-toggle-btn {
-    /* Inherit general button styles */
-    background-color: var(--button-secondary-bg);
-    color: var(--button-secondary-text);
-    border: 1px solid var(--border-color); /* Subtle border */
-    font-size: 1.2rem; /* Adjust size if needed */
-    padding: 6px 10px; /* More button-like padding */
-    line-height: 1;
-    border-radius: 6px; /* Match other buttons */
-    cursor: pointer;
-    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
-    /* Positioning - ensure it's relative to the container if header structure changes */
-    position: absolute;
-    top: 28px; /* Fine-tune vertical position */
-    right: 30px; /* Fine-tune horizontal position */
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted-color);
+    font-size: 1.5rem; /* Larger emoji */
+    padding: 4px 8px;
+    line-height: 1; /* Ensure button height fits emoji */
+    position: absolute; /* Position relative to header */
+    right: 15px; /* Align with container padding */
+    top: 25px; /* Align vertically */
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
+/* Adjust button position relative to container, not header */
+.container > .header .theme-toggle-btn {
+    position: absolute;
+    top: 30px; /* Align with body padding */
+    right: 30px; /* Align with body padding */
+}
+
 
 .theme-toggle-btn:hover {
-    background-color: var(--button-secondary-hover-bg);
-    border-color: var(--input-focus-border-color); /* Highlight on hover */
-    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-}
-
-.theme-toggle-btn:active {
-    transform: scale(0.96); /* Slight press effect */
-}
-
-/* Adjust positioning in header (ensure consistency) */
-.container > .header .theme-toggle-btn {
-    position: absolute; /* Reaffirm absolute positioning relative to container */
-    top: 28px; /* Adjust based on H1 size/padding */
-    right: 30px; /* Adjust based on container padding */
+    background-color: var(--button-secondary-bg);
 }
 
 
@@ -341,12 +330,6 @@ button:active:not(:disabled) {
     width: 95%;
     position: relative;
     transition: color 0.3s ease;
-    white-space: pre; /* Important: Preserve spaces added by JS */
-    /* Remove the width: 95% if it causes issues with pre */
-    /* width: 95%; */
-    display: flex; /* Use flex to center the inner span */
-    justify-content: center;
-    align-items: center;
 }
 
 #rsvp-display .placeholder {
@@ -354,7 +337,6 @@ button:active:not(:disabled) {
     color: var(--text-muted-color);
     font-family: var(--font-sans);
     transition: color 0.3s ease;
-    display: inline-block;
 }
 
 .guide-top, .guide-bottom {
@@ -422,41 +404,7 @@ button:active:not(:disabled) {
     background-color: var(--text-muted-color);
     border-radius: 4px;
 }
-#full-text-output pre span.word {
-    cursor: pointer;
-    border-radius: 3px; /* Slight rounding for hover/highlight */
-    padding: 0 1px; /* Tiny padding for visual separation on highlight */
-    margin: 0 -1px; /* Counteract padding influence on layout */
-    transition: background-color 0.2s ease, color 0.2s ease; /* Smooth transitions */
-}
 
-/* Hover effect for clickable words */
-#full-text-output pre span.word:hover {
-    background-color: var(--primary-color); /* Use primary color for hover */
-    color: var(--primary-text-color); /* Text color that contrasts with primary */
-    opacity: 0.7; /* Make hover slightly subtle */
-}
-
-/* Style for the currently active RSVP word in the full text */
-#full-text-output pre span.word.current-rsvp-word {
-    background-color: var(--orp-color); /* Use ORP color for active word */
-    color: var(--primary-text-color); /* Ensure contrast, usually white/light */
-    font-weight: 500; /* Slightly bolder */
-    opacity: 1.0; /* Full opacity for the active word */
-}
-
-/* Ensure dark mode compatibility for highlighting */
-body.dark-mode #full-text-output pre span.word:hover {
-     /* Primary color might need adjustment in dark mode if not already done */
-     /* color: var(--card-bg-color); */ /* Or ensure --primary-text-color works well */
-     opacity: 0.7;
-}
-
-body.dark-mode #full-text-output pre span.word.current-rsvp-word {
-    background-color: var(--orp-color); /* ORP color should have been adjusted for dark mode */
-    /* color: var(--card-bg-color); */ /* Or use a specific dark-mode highlight text color */
-    font-weight: 500;
-}
 
 /* --- Responsive Adjustments --- */
 @media (max-width: 700px) {
@@ -470,12 +418,6 @@ body.dark-mode #full-text-output pre span.word.current-rsvp-word {
     #wpmSlider { width: 100%; }
     #rsvp-display { font-size: 2.2rem; }
     #rsvp-display-wrapper { height: 110px; }
-        .container > .header .theme-toggle-btn {
-            top: 22px; /* Adjust for smaller screens */
-            right: 20px;
-            font-size: 1.1rem;
-            padding: 5px 8px;
-        }
 }
 
 @media (max-width: 480px) {
@@ -492,17 +434,4 @@ body.dark-mode #full-text-output pre span.word.current-rsvp-word {
     button { font-size: 0.9rem; padding: 8px 14px;}
     .button-primary { font-size: 0.95rem; padding: 10px 16px;}
     .theme-toggle-btn { font-size: 1.2rem;}
-        .container > .header .theme-toggle-btn {
-            top: 18px; /* Adjust for smallest screens */
-            right: 15px;
-        }
-        #rsvp-display {
-            font-size: 1.8rem; /* May need to adjust font size */
-            white-space: normal; /* Allow wrapping on very small screens if needed */
-            word-break: break-all; /* Break long words if absolutely necessary */
-        }
-        #rsvp-display .word-container {
-            white-space: pre; /* Try to keep spaces */
-        }
-
 }
