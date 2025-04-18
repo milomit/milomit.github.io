@@ -1,205 +1,316 @@
+:root {
+    --primary-color: #4a90e2; /* A nice blue */
+    --secondary-color: #f5f7fa; /* Light grey background */
+    --text-color: #333;
+    --border-color: #d1d5db;
+    --error-color: #e53e3e;
+    --success-color: #38a169;
+    --orp-color: #d9534f; /* Red for the ORP letter */
+    --font-sans: 'Roboto', sans-serif;
+    --font-mono: 'Roboto Mono', monospace;
+}
+
 body {
-    font-family: sans-serif;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    font-family: var(--font-sans);
+    background-color: var(--secondary-color);
+    color: var(--text-color);
+    margin: 0;
     padding: 20px;
-    background-color: #f4f4f4;
+    line-height: 1.6;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* Align top */
+    min-height: 100vh;
+}
+
+.container {
+    background-color: #fff;
+    padding: 30px 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    max-width: 700px;
+    width: 100%;
+    box-sizing: border-box; /* Include padding in width */
 }
 
 h1 {
-    color: #333;
+    color: var(--primary-color);
+    text-align: center;
+    margin-bottom: 10px;
+    font-weight: 700;
 }
 
-.controls {
-    margin: 15px 0;
-    display: flex;
-    gap: 10px;
-    align-items: center;
+.subtitle {
+    text-align: center;
+    color: #666;
+    margin-bottom: 30px;
+    font-weight: 300;
 }
 
-label {
-    font-weight: bold;
+.input-section label,
+.controls label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 400;
+    color: #555;
 }
 
-input[type="number"] {
-    width: 70px;
-    padding: 5px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-textarea {
-    width: 80%;
-    max-width: 600px;
-    padding: 10px;
-    border: 1px solid #ccc;
+.input-section input[type="password"],
+.input-section textarea {
+    width: 100%;
+    padding: 10px 12px;
+    margin-bottom: 15px;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     font-size: 1rem;
-    margin-bottom: 15px;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+}
+
+.input-section textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.input-section input:focus,
+.input-section textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
 }
 
 button {
-    padding: 10px 20px;
-    font-size: 1rem;
-    cursor: pointer;
-    background-color: #007bff;
+    background-color: var(--primary-color);
     color: white;
     border: none;
+    padding: 12px 20px;
     border-radius: 4px;
-    transition: background-color 0.2s;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 700;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    margin-right: 10px; /* Spacing between buttons */
 }
 
-button:hover {
-    background-color: #0056b3;
+button:hover:not(:disabled) {
+    background-color: #357abd; /* Darker blue on hover */
 }
 
-#stop-btn {
-    background-color: #dc3545;
+button:active:not(:disabled) {
+    transform: scale(0.98);
 }
 
-#stop-btn:hover {
-    background-color: #c82333;
+button:disabled {
+    background-color: #a0c7e4; /* Lighter blue when disabled */
+    cursor: not-allowed;
 }
 
-#rsvp-display-container {
-    width: 80%;
-    max-width: 600px;
-    margin-top: 20px;
-    border: 1px solid #ccc;
-    background-color: #fff;
-    padding: 10px 0; /* Padding top/bottom for focus indicators */
-    position: relative; /* Needed for absolute positioning of indicators */
+.status-message {
+    margin-top: 15px;
+    font-weight: 400;
+    text-align: center;
+    min-height: 1.2em; /* Reserve space */
+}
+
+.status-message.error {
+    color: var(--error-color);
+}
+
+.status-message.success {
+    color: var(--success-color);
+}
+
+.rsvp-section {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.rsvp-section h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #444;
+    font-weight: 400;
+}
+
+.controls {
+    display: flex;
+    flex-wrap: wrap; /* Allow wrapping on smaller screens */
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    gap: 15px; /* Spacing between items */
+}
+
+.controls label {
+    margin-bottom: 0; /* Remove bottom margin for inline look */
+    flex-basis: 200px; /* Give label enough space */
+}
+
+#wpmSlider {
+    flex-grow: 1; /* Allow slider to take available space */
+    cursor: pointer;
+    height: 8px;
+    background: #ddd;
     border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    outline: none;
+    appearance: none; /* Override default look */
+    -webkit-appearance: none;
+}
+
+/* Style the thumb for Webkit browsers (Chrome, Safari) */
+#wpmSlider::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+/* Style the thumb for Firefox */
+#wpmSlider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none; /* Remove Firefox default border */
+}
+
+#wpmValue {
+    font-weight: bold;
+    min-width: 35px; /* Ensure space for numbers */
+    display: inline-block;
+    text-align: right;
+}
+
+#rsvp-display-wrapper {
+    position: relative; /* For guide lines */
+    background-color: #f8f9fa;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    height: 120px; /* Fixed height for vertical centering */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden; /* Hide potential overflow */
+    margin-bottom: 20px;
 }
 
 #rsvp-display {
-    font-size: 2.5em; /* Larger font size for readability */
-    font-family: 'Courier New', Courier, monospace; /* Monospace helps alignment perception */
-    min-height: 1.5em; /* Ensure consistent height */
-    line-height: 1.5em; /* Match min-height for vertical centering */
-    text-align: center; /* Center the text block */
-    color: #333;
-    overflow: hidden; /* Hide potential overflow */
-    white-space: nowrap; /* Keep word on one line */
-    display: flex; /* Use flexbox for centering */
-    justify-content: center; /* Horizontal centering */
-    align-items: center; /* Vertical centering */
+    font-family: var(--font-mono);
+    font-size: 2.5rem; /* Larger font for RSVP */
+    font-weight: 400;
+    color: var(--text-color);
+    text-align: center; /* Center the word block */
+    width: 90%; /* Prevent text touching edges */
+    position: relative; /* Needed for ORP absolute positioning if used */
 }
 
-/* Style for the Optimal Recognition Point (ORP) letter */
-.orp-letter {
-    color: red;
-    font-weight: bold;
+#rsvp-display .placeholder {
+    font-size: 1.5rem;
+    color: #aaa;
+    font-family: var(--font-sans);
 }
 
-/* Visual indicators for the focus point */
-.focus-indicator {
+/* Guide lines for ORP focus */
+.guide-top,
+.guide-bottom {
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
-    width: 2px; /* Line width */
-    height: 8px; /* Line height */
-    background-color: red;
+    width: 1px; /* Line width */
+    height: 10px; /* Line height */
+    background-color: var(--orp-color);
     opacity: 0.6;
 }
 
-.focus-indicator.top {
-    top: 2px; /* Position near the top edge */
+.guide-top {
+    top: 15px;
 }
 
-.focus-indicator.bottom {
-    bottom: 2px; /* Position near the bottom edge */
+.guide-bottom {
+    bottom: 15px;
 }
 
-.warning {
-    background-color: #fff3cd;
-    color: #856404;
-    border: 1px solid #ffeeba;
-    padding: 10px 15px;
-    border-radius: 4px;
-    margin: 15px 0;
-    width: 80%;
-    max-width: 600px;
-    text-align: center;
-    font-size: 0.9em;
+.orp-letter {
+    color: var(--orp-color);
+    font-weight: bold; /* Make ORP letter slightly bolder */
 }
 
-.ai-interaction {
-    /* ... existing styles ... */
-    gap: 15px; /* Adjust gap */
+/* Non-breaking spaces help with alignment but CSS is better */
+.word-container {
+    display: inline-block; /* Allows centering */
+    white-space: nowrap; /* Keep word parts together */
 }
 
-.api-key-section {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap; /* Allow wrapping on small screens */
-    padding: 10px;
+.orp-before, .orp-letter, .orp-after {
+    display: inline; /* Keep them flowing like text */
+}
+
+.full-text {
+    margin-top: 20px;
     background-color: #f8f9fa;
-    border: 1px solid #eee;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
+    padding: 15px;
 }
 
-.api-key-section label {
-     margin-bottom: 0; /* Override general label margin */
-     flex-shrink: 0; /* Prevent label from shrinking */
+.full-text h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #555;
 }
 
-#api-key-input {
-    flex-grow: 1; /* Allow input to take available space */
-    min-width: 200px; /* Ensure decent width */
-    padding: 6px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+.full-text pre {
+    white-space: pre-wrap; /* Allow text to wrap */
+    word-wrap: break-word; /* Break long words if needed */
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    color: #444;
+    max-height: 200px; /* Limit height */
+    overflow-y: auto; /* Add scroll if needed */
 }
 
-#save-key-btn {
-    padding: 6px 12px;
-    font-size: 0.9em;
-    background-color: #6c757d; /* Gray */
-}
-#save-key-btn:hover {
-    background-color: #5a6268;
-}
 
-#key-status {
-    font-size: 0.85em;
-    font-style: italic;
-    color: #28a745; /* Green for success */
+/* Basic Responsive Adjustments */
+@media (max-width: 600px) {
+    .container {
+        padding: 20px;
+    }
+
+    h1 {
+        font-size: 1.8rem;
+    }
+
+    .controls {
+        flex-direction: column;
+        align-items: stretch; /* Stretch items full width */
+    }
+
+    .controls label {
+        flex-basis: auto;
+        text-align: center;
+        margin-bottom: 5px;
+    }
+
+     #wpmSlider {
+        width: 100%; /* Full width slider */
+    }
+
+    .controls div:last-child { /* Button container */
+        display: flex;
+        justify-content: center;
+        width: 100%;
+    }
+
+    #rsvp-display {
+        font-size: 2rem;
+    }
+
+    #rsvp-display-wrapper {
+        height: 100px;
+    }
 }
-
-#generate-btn:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
-    opacity: 0.7;
-}
-
-/* ... (Keep previous styles for .warning, .ai-interaction, .api-key-section, etc.) ... */
-
-.provider-selection {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 10px; /* Spacing */
-}
-
-.provider-selection label {
-    font-weight: bold;
-    flex-shrink: 0;
-}
-
-#api-provider {
-    padding: 6px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    flex-grow: 1; /* Allow dropdown to take space */
-}
-
-/* Adjust API key input placeholder text color potentially */
-#api-key-input::placeholder {
-  color: #999;
-}
-
-/* ... (Rest of CSS) ... */
