@@ -335,53 +335,63 @@ button:not(:disabled):active {
     border: 1px solid var(--border-color);
     border-radius: 8px;
     height: 130px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    display: flex; /* Keep flex on wrapper for vertical centering */
+    justify-content: center; /* Center the #rsvp-display horizontally */
+    align-items: center; /* Center the #rsvp-display vertically */
     overflow: hidden;
     margin-bottom: 20px;
     transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 #rsvp-display {
-    font-family: var(--font-mono); /* Crucial for centering */
+    font-family: var(--font-mono); /* MONOSPACE IS KEY */
     font-size: 2.8rem;
     font-weight: 400;
     color: var(--text-color);
-    text-align: center; /* Center the flex item if needed */
-    position: relative;
-    white-space: pre; /* Respect non-breaking spaces */
-    display: flex; /* Center inner span */
-    justify-content: center;
-    align-items: center;
-    width: 100%; /* Take full width to allow flex centering */
+    width: 100%; /* Take full width */
+    text-align: center; /* LET TEXT-ALIGN DO THE FINAL CENTERING */
+    white-space: pre; /* ESSENTIAL to respect JS padding */
+    /* display: flex; */ /* REMOVE FLEX from here */
+    /* justify-content: center; */ /* REMOVE FLEX */
+    /* align-items: center; */ /* REMOVE FLEX */
     transition: color 0.3s ease;
+    line-height: 1.2; /* Adjust line height if needed */
+    padding: 0 10px; /* Add some padding inside the display */
 }
 
 #rsvp-display .placeholder {
     font-size: 1.5rem;
     color: var(--text-muted-color);
-    font-family: var(--font-sans);
+    font-family: var(--font-sans); /* Placeholder can use sans-serif */
+    white-space: normal; /* Placeholder doesn't need pre */
+    display: inline-block; /* Allow text-align: center to work */
     transition: color 0.3s ease;
 }
 
 .guide-top, .guide-bottom {
+    /* Keep guide styles as they were */
     position: absolute; left: 50%; transform: translateX(-50%);
     width: 1px; height: 12px; background-color: var(--guide-line-color);
     opacity: 0.7; transition: background-color 0.3s ease;
+    z-index: 1; /* Ensure guides are potentially above text if needed */
 }
 .guide-top { top: 15px; }
 .guide-bottom { bottom: 15px; }
 
 .orp-letter {
+    /* Keep ORP letter styles */
     color: var(--orp-color);
     font-weight: 500;
     transition: color 0.3s ease;
 }
 
-.word-container { display: inline-block; } /* Container for padding/parts */
-.orp-before, .orp-letter, .orp-after { display: inline; } /* Keep parts flowing */
-
+.word-container {
+    /* This container is less important now, primarily holds the parts */
+    display: inline; /* Let it flow naturally with text-align */
+}
+.orp-before, .orp-letter, .orp-after {
+    display: inline; /* Keep parts flowing */
+}
 /* Full Text Output */
 .full-text {
     margin-top: 20px;
@@ -453,7 +463,7 @@ button:not(:disabled):active {
     .header { justify-content: flex-start; padding-left: 0; padding-right: 45px; /* Make space for button */ }
     .theme-toggle-btn { top: 9px; right: 10px; }
     .subtitle { font-size: 1rem; }
-    #rsvp-display { font-size: 1.8rem; }
+    #rsvp-display { font-size: 1.8rem; padding: 0 5px; }
     button { font-size: 0.9rem; padding: 8px 14px;}
     .button-primary { font-size: 0.95rem; padding: 10px 16px;}
     .theme-toggle-btn { font-size: 1.0rem; padding: 4px 7px;}
