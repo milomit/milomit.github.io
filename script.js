@@ -246,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
              .replace(/&/g, "&")
              .replace(/</g, "<")
              .replace(/>/g, ">")
-             .replace(/"/g, """)
+             .replace(/"/g, "\"" )
              .replace(/'/g, "'");
      }
 
