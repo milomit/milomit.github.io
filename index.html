@@ -3,18 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RSVP Reader</title>
+    <title>AI RSVP Reader (GitHub Pages Demo)</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>RSVP Reader Tool</h1>
+    <h1>AI RSVP Reader Tool</h1>
+    <p class="warning">
+        <strong>Note:</strong> This demo runs entirely in your browser on GitHub Pages.
+        To use the AI features, you need to provide your own OpenAI API key below.
+        Your key will be stored temporarily in your browser's local storage for convenience
+        but will not be sent anywhere except directly to OpenAI from your browser.
+    </p>
+
+    <!-- AI Interaction Section -->
+    <div class="ai-interaction">
+        <h2>AI Configuration & Generation</h2>
+        <div class="api-key-section">
+             <label for="api-key-input">Your OpenAI API Key:</label>
+             <input type="password" id="api-key-input" placeholder="Enter your OpenAI API Key (sk-...)">
+             <button id="save-key-btn">Save Key</button>
+             <span id="key-status"></span>
+        </div>
+        <label for="ai-prompt">Enter your prompt:</label>
+        <input type="text" id="ai-prompt" placeholder="e.g., Explain quantum entanglement simply">
+        <button id="generate-btn">Generate Text</button>
+        <p id="ai-status" class="status-message"></p>
+    </div>
+    <!-- End AI Interaction Section -->
+
+    <hr class="separator">
 
     <div class="controls">
         <label for="wpm">Words Per Minute (WPM):</label>
         <input type="number" id="wpm" value="300" min="50" max="1500" step="10">
     </div>
 
-    <textarea id="text-input" rows="10" placeholder="Paste your text here..."></textarea>
+    <textarea id="text-input" rows="10" placeholder="Paste text here, or generate it with AI (API key required)..."></textarea>
 
     <div class="controls">
         <button id="start-btn">Start Reading</button>
@@ -24,7 +48,6 @@
     <div id="rsvp-display-container">
         <div class="focus-indicator top"></div>
         <div id="rsvp-display">
-            <!-- Word will appear here -->
             Ready...
         </div>
         <div class="focus-indicator bottom"></div>

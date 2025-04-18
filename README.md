@@ -1,3 +1,3 @@
 # milomit.github.io
 
-hello website
+rsvp tool with dynamic delay and word centering with ai funcitonality
