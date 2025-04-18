@@ -3,48 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI RSVP Reader (GitHub Pages Demo)</title>
+    <title>Multi-LLM RSVP Reader (GitHub Pages Demo)</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>AI RSVP Reader Tool</h1>
+    <h1>Multi-LLM RSVP Reader Tool</h1>
     <p class="warning">
-        <strong>Note:</strong> This demo runs entirely in your browser on GitHub Pages.
-        To use the AI features, you need to provide your own OpenAI API key below.
-        Your key will be stored temporarily in your browser's local storage for convenience
-        but will not be sent anywhere except directly to OpenAI from your browser.
+        <strong>Note:</strong> This demo runs entirely in your browser.
+        To use the AI features, select an API provider and enter <strong>your own API key</strong> for that provider below.
+        Your key is stored temporarily in your browser's local storage for convenience.
     </p>
 
     <!-- AI Interaction Section -->
     <div class="ai-interaction">
         <h2>AI Configuration & Generation</h2>
+
+        <div class="provider-selection">
+            <label for="api-provider">Select LLM Provider:</label>
+            <select id="api-provider">
+                <option value="openai" selected>OpenAI (GPT-3.5/4)</option>
+                <option value="gemini">Google Gemini (Pro)</option>
+                <!-- Add other providers here later -->
+            </select>
+        </div>
+
         <div class="api-key-section">
-             <label for="api-key-input">Your OpenAI API Key:</label>
-             <input type="password" id="api-key-input" placeholder="Enter your OpenAI API Key (sk-...)">
+             <label for="api-key-input">Your API Key:</label>
+             <input type="password" id="api-key-input" placeholder="Enter API Key for selected provider">
              <button id="save-key-btn">Save Key</button>
              <span id="key-status"></span>
         </div>
         <label for="ai-prompt">Enter your prompt:</label>
-        <input type="text" id="ai-prompt" placeholder="e.g., Explain quantum entanglement simply">
-        <button id="generate-btn">Generate Text</button>
+        <input type="text" id="ai-prompt" placeholder="Enter & Save API Key first...">
+        <button id="generate-btn" disabled>Generate Text</button> <!-- Start disabled -->
         <p id="ai-status" class="status-message"></p>
     </div>
     <!-- End AI Interaction Section -->
 
     <hr class="separator">
 
+    <!-- ... (Rest of the HTML remains the same: WPM, Textarea, RSVP Display) ... -->
     <div class="controls">
         <label for="wpm">Words Per Minute (WPM):</label>
         <input type="number" id="wpm" value="300" min="50" max="1500" step="10">
     </div>
-
-    <textarea id="text-input" rows="10" placeholder="Paste text here, or generate it with AI (API key required)..."></textarea>
-
+    <textarea id="text-input" rows="10" placeholder="Paste text here, or generate it with AI..."></textarea>
     <div class="controls">
         <button id="start-btn">Start Reading</button>
         <button id="stop-btn">Stop</button>
     </div>
-
     <div id="rsvp-display-container">
         <div class="focus-indicator top"></div>
         <div id="rsvp-display">
